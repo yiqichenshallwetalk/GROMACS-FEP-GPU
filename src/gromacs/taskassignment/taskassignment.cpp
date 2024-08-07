@@ -258,6 +258,7 @@ GpuTaskAssignments GpuTaskAssignmentsBuilder::build(const gmx::ArrayRef<const in
                                                     MPI_Comm                       gromacsWorldComm,
                                                     const PhysicalNodeCommunicator& physicalNodeComm,
                                                     const TaskTarget                nonbondedTarget,
+                                                    const TaskTarget                fepTarget,
                                                     const TaskTarget                pmeTarget,
                                                     const TaskTarget                bondedTarget,
                                                     const TaskTarget                updateTarget,
@@ -269,6 +270,7 @@ GpuTaskAssignments GpuTaskAssignmentsBuilder::build(const gmx::ArrayRef<const in
     size_t               numRanksOnThisNode = physicalNodeComm.size_;
     std::vector<GpuTask> gpuTasksOnThisRank = findGpuTasksOnThisRank(!availableDevices.empty(),
                                                                      nonbondedTarget,
+                                                                     fepTarget,
                                                                      pmeTarget,
                                                                      bondedTarget,
                                                                      updateTarget,

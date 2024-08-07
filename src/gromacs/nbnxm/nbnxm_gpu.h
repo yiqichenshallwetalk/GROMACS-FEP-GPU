@@ -36,6 +36,7 @@
  *
  *  \author Szilard Pall <pall.szilard@gmail.com>
  *  \author Mark Abraham <mark.j.abraham@gmail.com>
+ *  \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  *  \ingroup module_nbnxm
  */
 
@@ -45,6 +46,7 @@
 #include "gromacs/gpu_utils/gpu_macros.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/mdtypes/locality.h"
+#include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/real.h"
@@ -192,6 +194,7 @@ void gpu_launch_cpyback(NbnxmGpu gmx_unused* nb,
  * \param[out] e_lj           Pointer to the LJ energy output to accumulate into
  * \param[out] e_el           Pointer to the electrostatics energy output to accumulate into
  * \param[out] shiftForces    Shift forces buffer to accumulate into
+ * \param[out] foreign_term    Foreign lambda terms buffer to accumulate into
  * \param[in]  completionKind Indicates whether nnbonded task completion should only be checked rather than waited for
  * \param[out] wcycle         Pointer to wallcycle data structure
  * \returns                   True if the nonbonded tasks associated with \p aloc locality have completed
@@ -202,7 +205,10 @@ bool gpu_try_finish_task(NbnxmGpu gmx_unused*    nb,
                          gmx::AtomLocality gmx_unused        aloc,
                          real gmx_unused* e_lj,
                          real gmx_unused*                    e_el,
+                         double gmx_unused*                 dvdl_lj,
+                         double gmx_unused*                 dvdl_el,
                          gmx::ArrayRef<gmx::RVec> gmx_unused shiftForces,
+                         ForeignLambdaTerms* gmx_unused  foreign_term,
                          GpuTaskCompletion gmx_unused        completionKind,
                          gmx_wallcycle gmx_unused* wcycle) GPU_FUNC_TERM_WITH_RETURN(false);
 
@@ -214,18 +220,19 @@ bool gpu_try_finish_task(NbnxmGpu gmx_unused*    nb,
  * pruning flags.
  *
  * \param[in] nb The nonbonded data GPU structure
- * \param[in]  stepWork        Step schedule flags
+ * \param[in] stepWork Force schedule flags
  * \param[in] aloc Atom locality identifier
- * \param[out] e_lj Pointer to the LJ energy output to accumulate into
- * \param[out] e_el Pointer to the electrostatics energy output to accumulate into
+ * \param[in] haveSoftCore Whether SoftCore has been used
+ * \param[out] enerd Pointer to the energy data to accumulate energies into
  * \param[out] shiftForces Shift forces buffer to accumulate into
- * \param[out] wcycle         Pointer to wallcycle data structure               */
+ * \param[out] wcycle Pointer to wallcycle data structure
+ * \return     The number of cycles the gpu wait took            */
 GPU_FUNC_QUALIFIER
 float gpu_wait_finish_task(NbnxmGpu gmx_unused*    nb,
                            const gmx::StepWorkload gmx_unused& stepWork,
                            gmx::AtomLocality gmx_unused        aloc,
-                           real gmx_unused* e_lj,
-                           real gmx_unused*                    e_el,
+                           const bool gmx_unused              haveSoftCore,
+                           gmx_enerdata_t* gmx_unused         enerd,
                            gmx::ArrayRef<gmx::RVec> gmx_unused shiftForces,
                            gmx_wallcycle gmx_unused* wcycle) GPU_FUNC_TERM_WITH_RETURN(0.0);
 
@@ -305,4 +312,4 @@ bool haveGpuShortRangeWork(const NbnxmGpu gmx_unused* nb, gmx::InteractionLocali
         GPU_FUNC_TERM_WITH_RETURN(false);
 
 } // namespace Nbnxm
-#endif
+#endif

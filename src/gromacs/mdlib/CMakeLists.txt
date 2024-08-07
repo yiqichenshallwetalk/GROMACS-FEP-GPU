@@ -52,6 +52,7 @@ if(GMX_GPU_CUDA)
     gmx_add_libgromacs_sources(
        gpuforcereduction_impl.cpp
        gpuforcereduction_impl_internal.cu
+       langevin_gpu_internal.cu
        leapfrog_gpu.cpp
        leapfrog_gpu_internal.cu
        lincs_gpu.cpp

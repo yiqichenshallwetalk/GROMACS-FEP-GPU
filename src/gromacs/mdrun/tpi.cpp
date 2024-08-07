@@ -36,6 +36,7 @@
  * \brief This file defines the integrator for test particle insertion
  *
  * \author Berk Hess <hess@kth.se>
+ * \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  * \ingroup module_mdrun
  */
 #include "gmxpre.h"
@@ -672,6 +673,10 @@ void LegacySimulator::do_tpi()
                 /* TODO: Avoid updating all atoms at every bNS step */
                 fr->nbv->setAtomProperties(mdatoms->typeA, mdatoms->chargeA, fr->atomInfo);
 
+                if (mdatoms->nPerturbed != 0)
+                {
+                    fr->nbv->setAtomPropertiesAB(mdatoms->typeA, mdatoms->typeB, mdatoms->chargeA, mdatoms->chargeB, fr->atomInfo);
+                }
                 fr->nbv->constructPairlist(InteractionLocality::Local, top->excls, step, nrnb);
 
                 bNS = FALSE;

@@ -57,6 +57,7 @@ SimulationWorkload createSimulationWorkload(const t_inputrec& inputrec,
                                             bool       havePpDomainDecomposition,
                                             bool       haveSeparatePmeRank,
                                             bool       useGpuForNonbonded,
+                                            bool       useGpuForFep,
                                             PmeRunMode pmeRunMode,
                                             bool       useGpuForBonded,
                                             bool       useGpuForUpdate,
@@ -72,6 +73,7 @@ SimulationWorkload createSimulationWorkload(const t_inputrec& inputrec,
     simulationWorkload.computeMuTot    = inputrecNeedMutot(&inputrec);
     simulationWorkload.useCpuNonbonded = !useGpuForNonbonded;
     simulationWorkload.useGpuNonbonded = useGpuForNonbonded;
+    simulationWorkload.useGpuFep = useGpuForFep;
     simulationWorkload.useCpuPme       = (pmeRunMode == PmeRunMode::CPU);
     simulationWorkload.useGpuPme = (pmeRunMode == PmeRunMode::GPU || pmeRunMode == PmeRunMode::Mixed);
     simulationWorkload.useGpuPmeFft              = (pmeRunMode == PmeRunMode::GPU);

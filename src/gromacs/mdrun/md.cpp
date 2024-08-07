@@ -421,8 +421,10 @@ void gmx::LegacySimulator::do_md()
         GMX_RELEASE_ASSERT(useGpuForPme || (useGpuForNonbonded && simulationWork.useGpuXBufferOps),
                            "Either PME or short-ranged non-bonded interaction tasks must run on "
                            "the GPU to use GPU update.\n");
-        GMX_RELEASE_ASSERT(ir->eI == IntegrationAlgorithm::MD,
-                           "Only the md integrator is supported with the GPU update.\n");
+        GMX_RELEASE_ASSERT(ir->eI == IntegrationAlgorithm::MD || ir->eI == IntegrationAlgorithm::SD1,
+                           "Only the md and sd integrators are supported with the GPU update.\n");
+        GMX_RELEASE_ASSERT(ir->eI != IntegrationAlgorithm::SD1 || GMX_GPU_CUDA,
+                           "The sd integrator can only use CUDA GPUs for updates.\n");
         GMX_RELEASE_ASSERT(
                 ir->etc != TemperatureCoupling::NoseHoover,
                 "Nose-Hoover temperature coupling is not supported with the GPU update.\n");
@@ -1572,7 +1574,7 @@ void gmx::LegacySimulator::do_md()
                             (ir->etc != TemperatureCoupling::No
                              && do_per_step(step + ir->nsttcouple - 1, ir->nsttcouple));
 
-                    // This applies Leap-Frog, LINCS and SETTLE in succession
+                    // This applies Leap-Frog (or SD), LINCS and SETTLE in succession
                     integrator->integrate(stateGpu->getLocalForcesReadyOnDeviceEvent(
                                                   runScheduleWork->stepWork, runScheduleWork->simulationWork),
                                           ir->delta_t,
@@ -1583,7 +1585,9 @@ void gmx::LegacySimulator::do_md()
                                           ekind->tcstat,
                                           doParrinelloRahman,
                                           ir->pressureCouplingOptions.nstpcouple * ir->delta_t,
-                                          parrinelloRahmanM);
+                                          parrinelloRahmanM,
+                                          ir->ld_seed,
+                                          step);
                 }
                 else
                 {

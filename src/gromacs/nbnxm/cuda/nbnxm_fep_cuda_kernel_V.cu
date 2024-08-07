@@ -1,9 +1,10 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2012- The GROMACS Authors
- * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
- * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
+ * Copyright (c) 2015,2016,2017,2019, by the GROMACS development team, led by
+ * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
+ * and including many others, as listed in the AUTHORS file in the
+ * top-level source directory and at http://www.gromacs.org.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,7 +18,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * https://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * http://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -26,44 +27,27 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at https://www.gromacs.org.
+ * official version at http://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out https://www.gromacs.org.
+ * the research papers on the package. Check out http://www.gromacs.org.
  */
-/*! \libinternal \file
- *  \brief Declare common functions for NBNXM GPU data management.
- *
- *  \author Artem Zhmurov <zhmurov@gmail.com>
- *
- *  \ingroup module_nbnxm
+#include "gmxpre.h"
+
+#include "gromacs/gpu_utils/cudautils.cuh"
+
+#include "nbnxm_cuda_kernel_utils.cuh"
+#include "nbnxm_cuda_types.h"
+
+/* Top-level kernel generation: will generate through multiple
+ * inclusion the following flavors for all fep kernel:
+ * energy-only output without pair list pruning;
  */
-
-#ifndef GMX_NBNXM_NBNXM_GPU_DATA_MGMT_H
-#define GMX_NBNXM_NBNXM_GPU_DATA_MGMT_H
-
-class DeviceContext;
-struct interaction_const_t;
-struct NBParamGpu;
-struct PairlistParams;
-
-namespace gmx
-{
-enum class InteractionLocality;
-}
-
-namespace Nbnxm
-{
-
-struct gpu_plist;
-struct gpu_feplist;
-
-/*! \brief Initializes the NBNXM GPU data structures. */
-void gpu_init_platform_specific(NbnxmGpu* nb);
-
-/*! \brief Releases the NBNXM GPU data structures. */
-void gpu_free_platform_specific(NbnxmGpu* nb);
-
-} // namespace Nbnxm
-
-#endif // GMX_NBNXM_NBNXM_GPU_DATA_MGMT_H
+#define FOREIGN_LAMBDA
+#define CALC_ENERGIES
+#define FUNCTION_DECLARATION_ONLY
+#include "nbnxm_fep_cuda_kernels.cuh"
+#undef FUNCTION_DECLARATION_ONLY
+#include "nbnxm_fep_cuda_kernels.cuh"
+#undef CALC_ENERGIES
+#undef FOREIGN_LAMBDA

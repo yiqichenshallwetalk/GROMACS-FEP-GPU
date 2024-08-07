@@ -424,6 +424,7 @@ Mdrunner Mdrunner::cloneOnSpawnedThread() const
     newRunner.mdrunOptions    = mdrunOptions;
     newRunner.domdecOptions   = domdecOptions;
     newRunner.nbpu_opt        = nbpu_opt;
+    newRunner.fep_opt        = fep_opt;
     newRunner.pme_opt         = pme_opt;
     newRunner.pme_fft_opt     = pme_fft_opt;
     newRunner.bonded_opt      = bonded_opt;
@@ -882,6 +883,7 @@ int Mdrunner::mdrunner()
     }
     GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
     auto nonbondedTarget = findTaskTarget(nbpu_opt);
+    auto fepTarget = findTaskTarget(fep_opt);
     auto pmeTarget       = findTaskTarget(pme_opt);
     auto pmeFftTarget    = findTaskTarget(pme_fft_opt);
     auto bondedTarget    = findTaskTarget(bonded_opt);
@@ -1028,6 +1030,7 @@ int Mdrunner::mdrunner()
     // alongside a nonbonded task, so do not influence task assignment
     // even though they affect the force calculation workload.
     bool useGpuForNonbonded = false;
+    bool useGpuForFep = false;
     bool useGpuForPme       = false;
     bool useGpuForBonded    = false;
     bool useGpuForUpdate    = false;
@@ -1056,6 +1059,8 @@ int Mdrunner::mdrunner()
                                                     gpusWereDetected);
         useGpuForBonded = decideWhetherToUseGpusForBonded(
                 useGpuForNonbonded, useGpuForPme, bondedTarget, *inputrec, mtop, domdecOptions.numPmeRanks, gpusWereDetected);
+        useGpuForFep = decideWhetherToUseGpusForFep(
+                useGpuForNonbonded, fepTarget);
     }
     GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
 
@@ -1479,6 +1484,7 @@ int Mdrunner::mdrunner()
             simulationCommunicator,
             physicalNodeComm,
             nonbondedTarget,
+            fepTarget,
             pmeTarget,
             bondedTarget,
             updateTarget,
@@ -1570,6 +1576,7 @@ int Mdrunner::mdrunner()
                                                               havePPDomainDecomposition(cr),
                                                               haveSeparatePmeRank,
                                                               useGpuForNonbonded,
+                                                              useGpuForFep,
                                                               pmeRunMode,
                                                               useGpuForBonded,
                                                               useGpuForUpdate,
@@ -1806,6 +1813,7 @@ int Mdrunner::mdrunner()
                 cr,
                 *hwinfo_,
                 runScheduleWork.simulationWork.useGpuNonbonded,
+                runScheduleWork.simulationWork.useGpuFep,
                 deviceStreamManager.get(),
                 mtop,
                 PAR(cr) ? &observablesReducerBuilder : nullptr,
@@ -2423,6 +2431,8 @@ public:
 
     void addNonBonded(const char* nbpu_opt);
 
+    void addFep(const char* fep_opt);
+
     void addPME(const char* pme_opt_, const char* pme_fft_opt_);
 
     void addBondedTaskAssignment(const char* bonded_opt);
@@ -2446,6 +2456,7 @@ private:
     // \todo Clarify source(s) of default parameters.
 
     const char* nbpu_opt_    = nullptr;
+    const char* fep_opt_    = nullptr;
     const char* pme_opt_     = nullptr;
     const char* pme_fft_opt_ = nullptr;
     const char* bonded_opt_  = nullptr;
@@ -2624,6 +2635,15 @@ Mdrunner Mdrunner::BuilderImplementation::build()
         GMX_THROW(gmx::APIError("MdrunnerBuilder::addNonBonded() is required before build()"));
     }
 
+    if (fep_opt_)
+    {
+        newRunner.fep_opt = fep_opt_;
+    }
+    else
+    {
+        GMX_THROW(gmx::APIError("MdrunnerBuilder::addNonBonded() is required before build()"));
+    }
+
     if (pme_opt_ && pme_fft_opt_)
     {
         newRunner.pme_opt     = pme_opt_;
@@ -2677,6 +2697,11 @@ void Mdrunner::BuilderImplementation::addHardwareDetectionResult(const gmx_hw_in
 void Mdrunner::BuilderImplementation::addNonBonded(const char* nbpu_opt)
 {
     nbpu_opt_ = nbpu_opt;
+}
+
+void Mdrunner::BuilderImplementation::addFep(const char* fep_opt)
+{
+    fep_opt_ = fep_opt;
 }
 
 void Mdrunner::BuilderImplementation::addPME(const char* pme_opt, const char* pme_fft_opt)
@@ -2768,6 +2793,12 @@ MdrunnerBuilder& MdrunnerBuilder::addReplicaExchange(const ReplicaExchangeParame
 MdrunnerBuilder& MdrunnerBuilder::addNonBonded(const char* nbpu_opt)
 {
     impl_->addNonBonded(nbpu_opt);
+    return *this;
+}
+
+MdrunnerBuilder& MdrunnerBuilder::addFep(const char* fep_opt)
+{
+    impl_->addFep(fep_opt);
     return *this;
 }
 

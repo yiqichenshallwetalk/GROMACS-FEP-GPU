@@ -61,6 +61,7 @@ namespace gmx
 
 std::vector<GpuTask> findGpuTasksOnThisRank(const bool       haveGpusOnThisPhysicalNode,
                                             const TaskTarget nonbondedTarget,
+                                            const TaskTarget fepTarget,
                                             const TaskTarget pmeTarget,
                                             const TaskTarget bondedTarget,
                                             const TaskTarget updateTarget,
@@ -84,6 +85,12 @@ std::vector<GpuTask> findGpuTasksOnThisRank(const bool       haveGpusOnThisPhysi
             {
                 gmx_fatal(FARGS,
                           "Cannot run short-ranged nonbonded interactions on a GPU because no GPU "
+                          "is detected.");
+            }
+            else if (fepTarget == TaskTarget::Gpu)
+            {
+                gmx_fatal(FARGS,
+                          "Cannot run FEP interactions on a GPU because no GPU "
                           "is detected.");
             }
             else if (bondedTarget == TaskTarget::Gpu)

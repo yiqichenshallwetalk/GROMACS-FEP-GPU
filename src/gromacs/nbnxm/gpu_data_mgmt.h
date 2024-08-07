@@ -47,6 +47,7 @@
 
 #include "gromacs/gpu_utils/gpu_macros.h"
 #include "gromacs/mdtypes/locality.h"
+#include "gromacs/mdtypes/interaction_const.h"
 
 #include "nbnxm.h"
 
@@ -57,6 +58,7 @@ struct nbnxn_atomdata_t;
 struct NbnxnPairlistGpu;
 struct PairlistParams;
 struct interaction_const_t;
+struct t_nblist;
 
 namespace gmx
 {
@@ -66,6 +68,21 @@ class DeviceStreamManager;
 namespace Nbnxm
 {
 
+class GridSet;
+
+GPU_FUNC_QUALIFIER
+void cuda_copy_fepparams(NbnxmGpu*      nb,
+                        const bool            bFEP,
+                        const float          alpha_coul,
+                        const float           alpha_vdw,
+                        const int             lam_power,
+                        const float       sc_sigma6_def,
+                        const float       sc_sigma6_min,
+                         const float       lambda_q,
+                         const float       lambda_v,
+                         const int         n_lambda,
+                         const gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, std::vector<double>> all_lambda);
+
 /** Initializes the data structures related to GPU nonbonded calculations. */
 GPU_FUNC_QUALIFIER
 NbnxmGpu* gpu_init(const gmx::DeviceStreamManager gmx_unused& deviceStreamManager,
@@ -73,13 +90,22 @@ NbnxmGpu* gpu_init(const gmx::DeviceStreamManager gmx_unused& deviceStreamManage
                    const PairlistParams gmx_unused& listParams,
                    const nbnxn_atomdata_t gmx_unused* nbat,
                    /* true if both local and non-local are done on GPU */
-                   bool gmx_unused bLocalAndNonlocal) GPU_FUNC_TERM_WITH_RETURN(nullptr);
+                   bool gmx_unused bLocalAndNonlocal,
+                   const bool bFEP,
+                   const int  n_lambda) GPU_FUNC_TERM_WITH_RETURN(nullptr);
 
 /** Initializes pair-list data for GPU, called at every pair search step. */
 GPU_FUNC_QUALIFIER
 void gpu_init_pairlist(NbnxmGpu gmx_unused*          nb,
                        const struct NbnxnPairlistGpu gmx_unused* h_nblist,
                        gmx::InteractionLocality gmx_unused       iloc) GPU_FUNC_TERM;
+
+/** Initializes fep pair-list data for GPU, called at every pair search step. */
+GPU_FUNC_QUALIFIER
+void gpu_init_feppairlist(NbnxmGpu gmx_unused*   nb,
+                          struct t_nblist gmx_unused* h_feplist,
+                          gmx::InteractionLocality gmx_unused iloc,
+                          const GridSet gmx_unused& gridSet) GPU_FUNC_TERM;
 
 /** Initializes atom-data on the GPU, called at every pair search step. */
 GPU_FUNC_QUALIFIER

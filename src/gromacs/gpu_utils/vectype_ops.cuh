@@ -282,4 +282,21 @@ static __forceinline__ __device__ void atomicAdd(float3& a, const float3 b)
     atomicAdd(&a.z, b.z);
 }
 
+// warp sync functions
+static __forceinline__ __device__ float2 __shfl_sync(unsigned mask, float2 var, int srcLane, int width)
+{
+    return make_float2(__shfl_sync(mask, var.x, srcLane, width), __shfl_sync(mask, var.y, srcLane, width));
+}
+
+static __forceinline__ __device__ float3 __shfl_sync(unsigned mask, float3 var, int srcLane, int width)
+{
+    return make_float3(__shfl_sync(mask, var.x, srcLane, width), __shfl_sync(mask, var.y, srcLane, width), __shfl_sync(mask, var.z, srcLane, width));
+}
+
+static __forceinline__ __device__ float4 __shfl_sync(unsigned mask, float4 var, int srcLane, int width)
+{
+    return make_float4(__shfl_sync(mask, var.x, srcLane, width), __shfl_sync(mask, var.y, srcLane, width),
+                        __shfl_sync(mask, var.z, srcLane, width), __shfl_sync(mask, var.w, srcLane, width));
+}
+
 #endif /* VECTYPE_OPS_CUH */

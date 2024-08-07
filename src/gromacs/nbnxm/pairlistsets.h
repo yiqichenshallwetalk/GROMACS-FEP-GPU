@@ -79,7 +79,8 @@ public:
                    nbnxn_atomdata_t*            nbat,
                    const gmx::ListOfLists<int>& exclusions,
                    int64_t                      step,
-                   t_nrnb*                      nrnb);
+                   t_nrnb*                      nrnb,
+                   bool                         useGpuForFep);
 
     //! Dispatches the dynamic pruning kernel for the given locality
     void dispatchPruneKernel(gmx::InteractionLocality       iLocality,

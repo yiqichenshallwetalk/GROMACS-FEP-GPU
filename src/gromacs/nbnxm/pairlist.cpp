@@ -1506,7 +1506,7 @@ static void reallocate_nblist(t_nblist* nl)
  * Note that half of the perturbed pairs will anyhow end up in very small lists,
  * since non perturbed i-particles will see few perturbed j-particles).
  */
-const int max_nrj_fep = 40;
+const int max_nrj_fep = 64;
 
 /* Extract perturbed interations to a separate free-energy pairlist \p nlist.
  *
@@ -2864,6 +2864,102 @@ static void balance_fep_lists(gmx::ArrayRef<std::unique_ptr<t_nblist>> fepLists,
     }
 }
 
+static void combine_fep_lists(gmx::ArrayRef<std::unique_ptr<t_nblist>> fepLists,
+                              gmx::ArrayRef<PairsearchWork>            work)
+{
+    const int numLists = fepLists.ssize();
+
+    if (numLists == 1)
+    {
+        /* Nothing to combine */
+        return;
+    }
+
+    /* Count the total i-lists and pairs */
+    int nri_tot = 0;
+    int nrj_tot = 0;
+    for (const auto& list : fepLists)
+    {
+        nri_tot += list->nri;
+        nrj_tot += list->nrj;
+    }
+
+#pragma omp parallel for schedule(static) num_threads(numLists)
+    for (int th = 0; th < numLists; th++)
+    {
+        try
+        {
+            t_nblist* nbl = work[th].nbl_fep.get();
+
+            /* Note that here we allocate for the total size, instead of
+             * a per-thread esimate (which is hard to obtain).
+             */
+            if (nri_tot > nbl->maxnri)
+            {
+                nbl->maxnri = over_alloc_large(nri_tot);
+                reallocate_nblist(nbl);
+            }
+            if (nri_tot > nbl->maxnri || nrj_tot > nbl->maxnrj)
+            {
+                nbl->maxnrj = over_alloc_small(nrj_tot);
+                nbl->jjnr.resize(nbl->maxnrj);
+                nbl->excl_fep.resize(nbl->maxnrj);
+            }
+
+            clear_pairlist_fep(nbl);
+        }
+        GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
+    }
+
+    /* Loop over the source lists and assign and copy i-entries */
+    int       th_dest = 0;
+    t_nblist* nbld    = work[th_dest].nbl_fep.get();
+    for (int th = 0; th < numLists; th++)
+    {
+        const t_nblist* nbls = fepLists[th].get();
+
+        for (int i = 0; i < nbls->nri; i++)
+        {
+            /* The number of pairs in this i-entry */
+            //const int nrj = nbls->jindex[i + 1] - nbls->jindex[i];
+
+            /* Decide if list th_dest is too large and we should procede
+             * to the next destination list.
+             */
+            // if (th_dest + 1 < numLists && nbld->nrj > 0
+            //     && nbld->nrj + nrj - nrj_target > nrj_target - nbld->nrj)
+            // {
+            //     th_dest++;
+            //     nbld = work[th_dest].nbl_fep.get();
+            // }
+
+            nbld->iinr[nbld->nri]  = nbls->iinr[i];
+            nbld->gid[nbld->nri]   = nbls->gid[i];
+            nbld->shift[nbld->nri] = nbls->shift[i];
+
+            for (int j = nbls->jindex[i]; j < nbls->jindex[i + 1]; j++)
+            {
+                nbld->jjnr[nbld->nrj]     = nbls->jjnr[j];
+                nbld->excl_fep[nbld->nrj] = nbls->excl_fep[j];
+                nbld->nrj++;
+            }
+            nbld->nri++;
+            nbld->jindex[nbld->nri] = nbld->nrj;
+        }
+    }
+
+    /* Swap the list pointers */
+    for (int th = 0; th < numLists; th++)
+    {
+        fepLists[th].swap(work[th].nbl_fep);
+
+        if (debug)
+        {
+            fprintf(debug, "nbl_fep[%d] nri %4d nrj %4d\n", th, fepLists[th]->nri, fepLists[th]->nrj);
+        }
+    }
+}
+
 /* Returns the next ci to be processes by our thread */
 static gmx_bool next_ci(const Grid& grid, int nth, int ci_block, int* ci_x, int* ci_y, int* ci_b, int* ci)
 {
@@ -3981,8 +4077,10 @@ void PairlistSet::constructPairlists(gmx::InteractionLocality      locality,
                                      const ListOfLists<int>&       exclusions,
                                      const int                     minimumIlistCountForGpuBalancing,
                                      t_nrnb*                       nrnb,
-                                     SearchCycleCounting*          searchCycleCounting)
+                                     SearchCycleCounting*          searchCycleCounting,
+                                     bool                           useGpuFep)
 {
+
     const real rlist = params_.rlistOuter;
 
     const int numLists = (isCpuType_ ? cpuLists_.size() : gpuLists_.size());
@@ -4216,7 +4314,10 @@ void PairlistSet::constructPairlists(gmx::InteractionLocality      locality,
         }
 
         /* Balance the free-energy lists over all the threads */
-        balance_fep_lists(fepLists_, searchWork);
+        if (isCpuType_ || !useGpuFep || !params_.haveFepGpu)
+            balance_fep_lists(fepLists_, searchWork);
+        else
+            combine_fep_lists(fepLists_, searchWork);
     }
 
     if (isCpuType_)
@@ -4286,7 +4387,8 @@ void PairlistSets::construct(const InteractionLocality iLocality,
                              nbnxn_atomdata_t*         nbat,
                              const ListOfLists<int>&   exclusions,
                              const int64_t             step,
-                             t_nrnb*                   nrnb)
+                             t_nrnb*                   nrnb,
+                             bool                      useGpuFep)
 {
     const auto& gridSet = pairSearch->gridSet();
     const auto* ddZones = gridSet.domainSetup().zones;
@@ -4307,7 +4409,8 @@ void PairlistSets::construct(const InteractionLocality iLocality,
                                               exclusions,
                                               minimumIlistCountForGpuBalancing_,
                                               nrnb,
-                                              &pairSearch->cycleCounting_);
+                                              &pairSearch->cycleCounting_,
+                                              useGpuFep);
 
     if (iLocality == InteractionLocality::Local)
     {
@@ -4336,7 +4439,7 @@ void nonbonded_verlet_t::constructPairlist(const InteractionLocality iLocality,
                                            int64_t                   step,
                                            t_nrnb*                   nrnb) const
 {
-    pairlistSets_->construct(iLocality, pairSearch_.get(), nbat.get(), exclusions, step, nrnb);
+    pairlistSets_->construct(iLocality, pairSearch_.get(), nbat.get(), exclusions, step, nrnb, useGpuForFep_);
 
     if (useGpu())
     {
@@ -4345,6 +4448,8 @@ void nonbonded_verlet_t::constructPairlist(const InteractionLocality iLocality,
          * NOTE: The launch overhead is currently not timed separately
          */
         Nbnxm::gpu_init_pairlist(gpu_nbv, pairlistSets().pairlistSet(iLocality).gpuList(), iLocality);
+        if (pairlistSets().pairlistSet(iLocality).params().haveFepGpu && useGpuForFep_)
+            Nbnxm::gpu_init_feppairlist(gpu_nbv, pairlistSets().pairlistSet(iLocality).fepList()->get(), iLocality, pairSearch_->gridSet());
     }
 
     /* With FEP we might need to check that we have all perturbed inclusions within rlist */

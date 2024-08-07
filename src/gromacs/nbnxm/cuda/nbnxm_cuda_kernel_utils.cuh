@@ -39,6 +39,7 @@
  *  kernels are included (has to be preceded by nbnxn_cuda_types.h).
  *
  *  \author Szilárd Páll <pall.szilard@gmail.com>
+ *  \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  *  \ingroup module_nbnxm
  */
 #include <cassert>
@@ -83,6 +84,21 @@ convert_sigma_epsilon_to_c6_c12(const float sigma, const float epsilon, float* c
     sigma6 = sigma2 * sigma2 * sigma2;
     *c6    = epsilon * sigma6;
     *c12   = *c6 * sigma6;
+}
+
+/*! Convert LJ C6,C12 parameters to sigma6. */
+static __forceinline__ __device__ void
+convert_c6_c12_to_sigma6(const float c6, const float c12, float* sigma6, const float sigma6_min, const float sigma6_def)
+{
+    if ((c6 > 0.0F) && (c12 > 0.0F))
+    {
+        *sigma6  = 0.5F * c12 / c6;
+        if (*sigma6 < sigma6_min) *sigma6 = sigma6_min;
+    }
+    else
+    {
+        *sigma6  = sigma6_def;
+    }
 }
 
 /*! Apply force switch,  force + energy version. */
@@ -687,5 +703,75 @@ reduce_energy_warp_shfl(float E_lj, float E_el, float* e_lj, float* e_el, int ti
         atomicAdd(e_el, E_el);
     }
 }
+
+__device__ __forceinline__ void staggeredAtomicAddForce(float3* __restrict__ targetPtr, float3 f, int tidx)
+{
+    int3 offset = make_int3(0, 1, 2);
+
+    // Shift force components x, y, and z left by 2, 1, and 0, respectively
+    // to end up with zxy, yzx, xyz on consecutive threads.
+    f      = (tidx % 3 == 0) ? make_float3(f.y, f.z, f.x) : f;
+    offset = (tidx % 3 == 0) ? make_int3(offset.y, offset.z, offset.x) : offset;
+    f      = (tidx % 3 <= 1) ? make_float3(f.y, f.z, f.x) : f;
+    offset = (tidx % 3 <= 1) ? make_int3(offset.y, offset.z, offset.x) : offset;
+
+    atomicAdd(&targetPtr->x + offset.x, f.x);
+    atomicAdd(&targetPtr->x + offset.y, f.y);
+    atomicAdd(&targetPtr->x + offset.z, f.z);
+}
+
+/*! Final i-force reduction for fep gpu kernel; this implementation works only with power of two
+ *  array sizes.
+ */
+ static __forceinline__ __device__ void
+ reduce_fep_force_i_warp_shfl(float3 fin, float3* fout, int tidx, int aidx, const unsigned int activemask)
+ {
+     int i, sh;
+
+     sh = 1;
+    #    pragma unroll 5
+     for (i = 0; i < 5; i++)
+     {
+         fin.x += __shfl_down_sync(activemask, fin.x, sh);
+         fin.y += __shfl_down_sync(activemask, fin.y, sh);
+         fin.z += __shfl_down_sync(activemask, fin.z, sh);
+         sh += sh;
+     }
+
+     /* The first thread in the warp writes the reduced energies */
+     if (tidx % warp_size == 0)
+     {
+        atomicAdd(&(fout[aidx]), fin);
+     }
+ }
+
+/*! Energy & DVDL reduction; this implementation works only with power of two
+ *  array sizes.
+ */
+ static __forceinline__ __device__ void
+ reduce_fep_energy_warp_shfl(float E_lj, float E_el, float DVDL_lj, float DVDL_el, float* e_lj, float* e_el, float* dvdl_lj, float* dvdl_el, int tidx, const unsigned int activemask)
+ {
+     int i, sh;
+
+     sh = 1;
+    #  pragma unroll 5
+    for (i = 0; i < 5; i++)
+     {
+         E_lj += __shfl_down_sync(activemask, E_lj, sh);
+         E_el += __shfl_down_sync(activemask, E_el, sh);
+         DVDL_lj += __shfl_down_sync(activemask, DVDL_lj, sh);
+         DVDL_el += __shfl_down_sync(activemask, DVDL_el, sh);
+         sh += sh;
+     }
+
+     /* The first thread in the warp writes the reduced energies */
+     if (tidx % warp_size == 0)
+     {
+         atomicAdd(e_lj, E_lj);
+         atomicAdd(e_el, E_el);
+         atomicAdd(dvdl_lj, DVDL_lj);
+         atomicAdd(dvdl_el, DVDL_el);
+     }
+ }
 
 #endif /* NBNXN_CUDA_KERNEL_UTILS_CUH */

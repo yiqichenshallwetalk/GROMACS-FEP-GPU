@@ -37,6 +37,7 @@
  *  Data types used internally in the nbnxn_cuda module.
  *
  *  \author Szilárd Páll <pall.szilard@gmail.com>
+ *  \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  *  \ingroup module_nbnxm
  */
 
@@ -100,6 +101,11 @@ struct NbnxmGpu
     NBParamGpu* nbparam = nullptr;
     /*! \brief pair-list data structures (local and non-local) */
     gmx::EnumerationArray<Nbnxm::InteractionLocality, Nbnxm::gpu_plist*> plist = { { nullptr } };
+    /*! \brief fep-list data structures (local and non-local) */
+    gmx::EnumerationArray<Nbnxm::InteractionLocality, Nbnxm::gpu_feplist*> feplist = { { nullptr } };
+    /*! \brief number of foreign lambdas and all lambda values */
+    int n_lambda = 0;
+    gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, std::vector<float>> all_lambda;
     /*! \brief staging area where fshift/energies get downloaded */
     NBStagingData nbst;
     /*! \brief local and non-local GPU streams */
@@ -137,4 +143,4 @@ struct NbnxmGpu
     gmx_wallclock_gpu_nbnxn_t* timings = nullptr;
 };
 
-#endif /* NBNXN_CUDA_TYPES_H */
+#endif /* NBNXN_CUDA_TYPES_H */

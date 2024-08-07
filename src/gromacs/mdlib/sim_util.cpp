@@ -95,6 +95,7 @@
 #include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/mdtypes/state_propagator_data_gpu.h"
+#include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/nbnxm/gpu_data_mgmt.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/nbnxm/nbnxm_gpu.h"
@@ -818,7 +819,8 @@ static void alternatePmeNbGpuWaitReduce(nonbonded_verlet_t* nbv,
                                         gmx_enerdata_t*     enerd,
                                         const real          lambdaQ,
                                         const StepWorkload& stepWork,
-                                        gmx_wallcycle*      wcycle)
+                                        gmx_wallcycle*      wcycle,
+                                        const t_inputrec&   inputrec)
 {
     bool isPmeGpuDone = false;
     bool isNbGpuDone  = false;
@@ -842,15 +844,31 @@ static void alternatePmeNbGpuWaitReduce(nonbonded_verlet_t* nbv,
             auto&             forceBuffersNonbonded = forceOutputsNonbonded->forceWithShiftForces();
             GpuTaskCompletion completionType =
                     (isPmeGpuDone) ? GpuTaskCompletion::Wait : GpuTaskCompletion::Check;
-            isNbGpuDone = Nbnxm::gpu_try_finish_task(
-                    nbv->gpu_nbv,
-                    stepWork,
-                    AtomLocality::Local,
+
+            if (inputrec.fepvals->sc_alpha != 0)
+            {
+                isNbGpuDone = Nbnxm::gpu_try_finish_task(
+                    nbv->gpu_nbv, stepWork, AtomLocality::Local,
                     enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
                     enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
+                    &enerd->dvdl_nonlin[FreeEnergyPerturbationCouplingType::Vdw],
+                    &enerd->dvdl_nonlin[FreeEnergyPerturbationCouplingType::Coul],
                     forceBuffersNonbonded.shiftForces(),
-                    completionType,
-                    wcycle);
+                    &enerd->foreignLambdaTerms,
+                    completionType, wcycle);
+            }
+            else
+            {
+                isNbGpuDone = Nbnxm::gpu_try_finish_task(
+                    nbv->gpu_nbv, stepWork, AtomLocality::Local,
+                    enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
+                    enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
+                    &enerd->dvdl_lin[FreeEnergyPerturbationCouplingType::Vdw],
+                    &enerd->dvdl_lin[FreeEnergyPerturbationCouplingType::Coul],
+                    forceBuffersNonbonded.shiftForces(),
+                    &enerd->foreignLambdaTerms,
+                    completionType, wcycle);
+            }
 
             if (isNbGpuDone)
             {
@@ -956,13 +974,15 @@ static DomainLifetimeWorkload setupDomainLifetimeWorkload(const t_inputrec&     
     // Note that haveFreeEnergyWork is constant over the whole run
     domainWork.haveFreeEnergyWork =
             (fr.efep != FreeEnergyPerturbationType::No && mdatoms.nPerturbed != 0);
+    // haveFreeEnergyWork on CPU
+    domainWork.haveCpuFreeEnergyWork = domainWork.haveFreeEnergyWork && (!simulationWork.useGpuFep || fr.efep == FreeEnergyPerturbationType::Expanded);
     // We assume we have local force work if there are CPU
     // force tasks including PME or nonbondeds.
     domainWork.haveCpuLocalForceWork =
             domainWork.haveSpecialForces || domainWork.haveCpuListedForceWork
-            || domainWork.haveFreeEnergyWork || simulationWork.useCpuNonbonded || simulationWork.useCpuPme
+            || domainWork.haveCpuFreeEnergyWork || simulationWork.useCpuNonbonded || simulationWork.useCpuPme
             || simulationWork.haveEwaldSurfaceContribution || inputrec.nwall > 0;
-    domainWork.haveCpuNonLocalForceWork = domainWork.haveCpuBondedWork || domainWork.haveFreeEnergyWork;
+    domainWork.haveCpuNonLocalForceWork = domainWork.haveCpuBondedWork || domainWork.haveCpuFreeEnergyWork;
     domainWork.haveLocalForceContribInCpuBuffer =
             domainWork.haveCpuLocalForceWork || simulationWork.havePpDomainDecomposition;
 
@@ -1622,6 +1642,11 @@ void do_force(FILE*                               fplog,
 
         nbv->setAtomProperties(mdatoms->typeA, mdatoms->chargeA, fr->atomInfo);
 
+        if (mdatoms->nPerturbed != 0)
+        {
+            nbv->setAtomPropertiesAB(mdatoms->typeA, mdatoms->typeB, mdatoms->chargeA, mdatoms->chargeB, fr->atomInfo);
+        }
+
         wallcycle_stop(wcycle, WallCycleCounter::NS);
 
         /* initialize the GPU nbnxm atom data and bonded data structures */
@@ -1852,7 +1877,7 @@ void do_force(FILE*                               fplog,
 
     // With FEP we set up the reduction over threads for local+non-local simultaneously,
     // so we need to do that here after the local and non-local pairlist construction.
-    if (stepWork.doNeighborSearch && fr->efep != FreeEnergyPerturbationType::No)
+    if (stepWork.doNeighborSearch && fr->efep != FreeEnergyPerturbationType::No && !(simulationWork.useGpuFep && fr->efep != FreeEnergyPerturbationType::Expanded))
     {
         wallcycle_sub_start(wcycle, WallCycleSubCounter::NonbondedFep);
         nbv->setupFepThreadedForceBuffer(fr->natoms_force_constr);
@@ -2004,7 +2029,7 @@ void do_force(FILE*                               fplog,
         wallcycle_start_nocount(wcycle, WallCycleCounter::Force);
     }
 
-    if (fr->efep != FreeEnergyPerturbationType::No && stepWork.computeNonbondedForces)
+    if (fr->efep != FreeEnergyPerturbationType::No && stepWork.computeNonbondedForces && (!useOrEmulateGpuNb || !simulationWork.useGpuFep || fr->efep == FreeEnergyPerturbationType::Expanded))
     {
         /* Calculate the local and non-local free energy interactions here.
          * Happens here on the CPU both with and without GPU.
@@ -2245,14 +2270,26 @@ void do_force(FILE*                               fplog,
         {
             if (simulationWork.useGpuNonbonded)
             {
+                if (inputrec.fepvals->sc_alpha != 0)
+                {
                 cycles_wait_gpu += Nbnxm::gpu_wait_finish_task(
                         nbv->gpu_nbv,
                         stepWork,
                         AtomLocality::NonLocal,
-                        enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
-                        enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
+                        true, enerd,
                         forceWithShiftForces.shiftForces(),
                         wcycle);
+                }
+                else
+                {
+                    cycles_wait_gpu += Nbnxm::gpu_wait_finish_task(
+                        nbv->gpu_nbv,
+                        stepWork,
+                        AtomLocality::NonLocal,
+                        false, enerd,
+                        forceWithShiftForces.shiftForces(),
+                        wcycle);
+                }
             }
             else
             {
@@ -2382,7 +2419,8 @@ void do_force(FILE*                               fplog,
                                     enerd,
                                     lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)],
                                     stepWork,
-                                    wcycle);
+                                    wcycle,
+                                    inputrec);
     }
 
     if (!alternateGpuWait && stepWork.haveGpuPmeOnThisRank && !needEarlyPmeResults)
@@ -2404,14 +2442,24 @@ void do_force(FILE*                               fplog,
          * of the step time.
          */
         const float gpuWaitApiOverheadMargin = 2e6F; /* cycles */
-        const float waitCycles               = Nbnxm::gpu_wait_finish_task(
-                nbv->gpu_nbv,
-                stepWork,
-                AtomLocality::Local,
-                enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
-                enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
-                forceOutNonbonded->forceWithShiftForces().shiftForces(),
-                wcycle);
+        float waitCycles;
+
+        if (inputrec.fepvals->sc_alpha != 0)
+        {
+            waitCycles = Nbnxm::gpu_wait_finish_task(
+                    nbv->gpu_nbv, stepWork, AtomLocality::Local,
+                    true, enerd,
+                    forceOutNonbonded->forceWithShiftForces().shiftForces(),
+                    wcycle);
+        }
+        else
+        {
+            waitCycles = Nbnxm::gpu_wait_finish_task(
+                    nbv->gpu_nbv, stepWork, AtomLocality::Local,
+                    false, enerd,
+                    forceOutNonbonded->forceWithShiftForces().shiftForces(),
+                    wcycle);
+        }
 
         if (ddBalanceRegionHandler.useBalancingRegion())
         {

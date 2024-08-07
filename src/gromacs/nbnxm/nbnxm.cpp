@@ -37,6 +37,7 @@
  * Implements the Nbnxm class
  *
  * \author Berk Hess <hess@kth.se>
+ * \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  * \ingroup module_nbnxm
  */
 
@@ -142,6 +143,15 @@ void nonbonded_verlet_t::setAtomProperties(gmx::ArrayRef<const int>     atomType
                                            gmx::ArrayRef<const int64_t> atomInfo) const
 {
     nbnxn_atomdata_set(nbat.get(), pairSearch_->gridSet(), atomTypes, atomCharges, atomInfo);
+}
+
+void nonbonded_verlet_t::setAtomPropertiesAB(gmx::ArrayRef<const int>  atomTypesA,
+                                             gmx::ArrayRef<const int>  atomTypesB,
+                                             gmx::ArrayRef<const real> atomChargesA,
+                                             gmx::ArrayRef<const real> atomChargesB,
+                                             gmx::ArrayRef<const int64_t>  atomInfo) const
+{
+    nbnxn_atomdata_setAB(nbat.get(), pairSearch_->gridSet(), atomTypesA, atomTypesB, atomChargesA, atomChargesB, atomInfo);
 }
 
 void nonbonded_verlet_t::convertCoordinates(const gmx::AtomLocality        locality,

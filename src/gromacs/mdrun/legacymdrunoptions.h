@@ -156,6 +156,7 @@ public:
                                                                                         "off",
                                                                                         nullptr };
     const char* nbpu_opt_choices[5]    = { nullptr, "auto", "cpu", "gpu", nullptr };
+    const char* fep_opt_choices[5]    = { nullptr, "auto", "cpu", "gpu", nullptr };
     const char* pme_opt_choices[5]     = { nullptr, "auto", "cpu", "gpu", nullptr };
     const char* pme_fft_opt_choices[5] = { nullptr, "auto", "cpu", "gpu", nullptr };
     const char* bonded_opt_choices[5]  = { nullptr, "auto", "cpu", "gpu", nullptr };
@@ -166,7 +167,7 @@ public:
 
     ImdOptions& imdOptions = mdrunOptions.imdOptions;
 
-    t_pargs pa[48] = {
+    t_pargs pa[49] = {
 
         { "-dd", FALSE, etRVEC, { &realddxyz }, "Domain decomposition grid, 0 is optimize" },
         { "-ddorder", FALSE, etENUM, { ddrank_opt_choices }, "DD rank order" },
@@ -286,6 +287,7 @@ public:
           "Optimize PME load between PP/PME ranks or GPU/CPU" },
         { "-pme", FALSE, etENUM, { pme_opt_choices }, "Perform PME calculations on" },
         { "-pmefft", FALSE, etENUM, { pme_fft_opt_choices }, "Perform PME FFT calculations on" },
+        { "-fep", FALSE, etENUM, { fep_opt_choices }, "Perform fep calculations on" },
         { "-bonded", FALSE, etENUM, { bonded_opt_choices }, "Perform bonded calculations on" },
         { "-update", FALSE, etENUM, { update_opt_choices }, "Perform update and constraints on" },
         { "-v", FALSE, etBOOL, { &mdrunOptions.verbose }, "Be loud and noisy" },

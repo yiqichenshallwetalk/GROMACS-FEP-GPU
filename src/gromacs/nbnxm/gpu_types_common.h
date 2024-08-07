@@ -35,6 +35,7 @@
  * \brief Implements common internal types for different NBNXN GPU implementations
  *
  * \author Szilárd Páll <pall.szilard@gmail.com>
+ * \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  * \ingroup module_nbnxm
  */
 
@@ -84,8 +85,17 @@ struct NBStagingData
     float* eLJ = nullptr;
     //! electrostatic energy
     float* eElec = nullptr;
+    //! dvdl terms
+    float* dvdlLJ = nullptr;
+    float* dvdlElec = nullptr;
     //! shift forces
     Float3* fShift = nullptr;
+
+    //! foreign lambda terms
+    float* eLJForeign = nullptr;
+    float* eElecForeign = nullptr;
+    float* dvdlLJForeign = nullptr;
+    float* dvdlElecForeign = nullptr;
 };
 
 /** \internal
@@ -102,6 +112,8 @@ struct NBAtomDataGpu
 
     //! atom coordinates + charges, size \ref numAtoms
     DeviceBuffer<Float4> xq;
+    //! atom charge(A&B), size numAtoms, only in FEP, use Float4 for coalesencing
+    DeviceBuffer<Float4>  q4;
     //! force output array, size \ref numAtoms
     DeviceBuffer<Float3> f;
 
@@ -110,6 +122,19 @@ struct NBAtomDataGpu
     //! Electrostatics energy input, size 1
     DeviceBuffer<float> eElec;
 
+    //! DVDL LJ output, size 1
+    DeviceBuffer<float> dvdlLJ;
+    //! DVDL Electrostatics input, size 1
+    DeviceBuffer<float> dvdlElec;
+
+    //! Foreign LJ energy output, size n_lambda+1
+    DeviceBuffer<float> eLJForeign;
+    //! Foreign Elec energy output, size n_lambda+1
+    DeviceBuffer<float> eElecForeign;
+    //! Foreign DVDL LJ output, size n_lambda+1
+    DeviceBuffer<float> dvdlLJForeign;
+    //! Foreign DVDL Elec output, size n_lambda+1
+    DeviceBuffer<float> dvdlElecForeign;
     //! shift forces
     DeviceBuffer<Float3> fShift;
 
@@ -119,6 +144,10 @@ struct NBAtomDataGpu
     DeviceBuffer<int> atomTypes;
     //! sqrt(c6),sqrt(c12) size \ref numAtoms
     DeviceBuffer<Float2> ljComb;
+    //! atom typeA&B indices, size numAtoms, only in FEP
+    DeviceBuffer<int4>    atomTypes4;
+    //! sqrt(c6),sqrt(c12) for stateA&B, size numAtoms, only in FEP
+    DeviceBuffer<Float4> ljComb4;
 
     //! shifts
     DeviceBuffer<Float3> shiftVec;
@@ -190,6 +219,23 @@ struct NBParamGpu
     DeviceBuffer<float> coulomb_tab{};
     //! texture object bound to coulomb_tab
     DeviceTexture coulomb_tab_texobj;
+
+    //! whether using free energy perturbation
+    bool  bFEP = 0;
+    float alpha_coul = 0.0;
+    float alpha_vdw = 0.0;
+    //float alpha_bond;
+    int   lam_power = 0; // Exponent for the dependence of the soft-core on lambda
+    float sc_sigma6 = 0.0;
+    float sc_sigma6_min = 0.0;
+    //free energy λ for coulomb interaction
+    float lambda_q = 0.0;
+    //free energy λ for vdw interaction
+    float lambda_v = 0.0;
+    //foreign free energy λ for both coul & vdw interactions
+    DeviceBuffer<float> allLambdaCoul;
+    DeviceBuffer<float> allLambdaVdw;
+
 };
 
 namespace Nbnxm
@@ -228,6 +274,8 @@ struct GpuTimers
         bool didPairlistH2D = false;
         //! timer for non-bonded kernels (l/nl, every step)
         GpuRegionTimer nb_k;
+        //! timer for non-bonded free energy kernels (l/nl, every step if applied)
+        GpuRegionTimer fep_k;
         //! timer for the 1st pass list pruning kernel (l/nl, every PS step)
         GpuRegionTimer prune_k;
         //! true when we timed pruning and the timings need to be accounted for
@@ -292,6 +340,22 @@ struct gpu_plist
     int d_rollingPruningPart_size = -1;
     //! allocated size of rolling pruning part buffer on device
     int d_rollingPruningPart_size_alloc = -1;
+};
+
+struct gpu_feplist
+{
+    int     nri, maxnri; /* Current/max number of i particles	   */
+    int     nrj, maxnrj; /* Current/max number of j particles	   */
+    DeviceBuffer<int>    iinr;        /* The i-elements                        */
+    DeviceBuffer<int>    gid;         /* Index in energy arrays                */
+    DeviceBuffer<int>    shift;       /* Shift vector index                    */
+    DeviceBuffer<int>    jindex;      /* Index in jjnr                         */
+    DeviceBuffer<int>    jjnr;        /* The j-atom list                       */
+    DeviceBuffer<int>   excl_fep;    /* Exclusions for FEP with Verlet scheme */
+
+    /* parameter+variables for normal and rolling pruning */
+    //! true after search, indicates that initial pruning with outer pruning is needed
+    bool haveFreshList;
 };
 
 } // namespace Nbnxm

@@ -586,6 +586,35 @@ bool decideWhetherToUseGpusForBonded(bool              useGpuForNonbonded,
     return gpusWereDetected && usingOurCpuForPmeOrEwald;
 }
 
+bool decideWhetherToUseGpusForFep(bool              useGpuForNonbonded,
+                                     TaskTarget        fepTarget)
+{
+    if (fepTarget == TaskTarget::Cpu)
+    {
+        return false;
+    }
+
+    if (!useGpuForNonbonded)
+    {
+        if (fepTarget == TaskTarget::Gpu)
+        {
+            GMX_THROW(InconsistentInputError(
+                    "FEP interactions on the GPU were required, but this requires that "
+                    "short-ranged non-bonded interactions are also run on the GPU. Change "
+                    "your settings, or do not require using GPUs."));
+        }
+
+        return false;
+    }
+
+    if (fepTarget == TaskTarget::Gpu)
+    {
+        // We still don't know whether it is an error if no GPUs are
+        // found.
+        return true;
+    }
+}
+
 bool decideWhetherToUseGpuForUpdate(const bool           isDomainDecomposition,
                                     const bool           useUpdateGroups,
                                     const PmeRunMode     pmeRunMode,
@@ -680,9 +709,13 @@ bool decideWhetherToUseGpuForUpdate(const bool           isDomainDecomposition,
         GMX_UNUSED_VALUE(silenceWarningMessageWithUpdateAuto);
         silenceWarningMessageWithUpdateAuto = true;
     }
-    if (inputrec.eI != IntegrationAlgorithm::MD)
+    if (inputrec.eI != IntegrationAlgorithm::MD && inputrec.eI != IntegrationAlgorithm::SD1)
     {
-        errorMessage += "Only the md integrator is supported.\n";
+        errorMessage += "Only the md and sd integrators are supported.\n";
+    }
+    if (inputrec.eI == IntegrationAlgorithm::SD1 && !GMX_GPU_CUDA)
+    {
+        errorMessage += "The sd integrator can only use CUDA GPUs for updates.\n";
     }
     if (inputrec.etc == TemperatureCoupling::NoseHoover)
     {
@@ -696,6 +729,13 @@ bool decideWhetherToUseGpuForUpdate(const bool           isDomainDecomposition,
         errorMessage +=
                 "Only Parrinello-Rahman, Berendsen, and C-rescale pressure coupling are "
                 "supported.\n";
+    }
+    if (inputrec.eI == IntegrationAlgorithm::SD1
+        && inputrec.pressureCouplingOptions.epc == PressureCoupling::ParrinelloRahman)
+    {
+        errorMessage +=
+                "The SD integrator cannot be used with Parrinello-Rahman pressure coupling. "
+                "C-rescale pressure coupling is recommended.\n";
     }
     if (inputrec.cos_accel != 0 || inputrec.useConstantAcceleration)
     {

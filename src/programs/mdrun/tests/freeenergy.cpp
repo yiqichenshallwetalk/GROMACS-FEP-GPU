@@ -153,7 +153,14 @@ TEST_P(FreeEnergyReferenceTest, WithinTolerances)
     runner_.fullPrecisionTrajectoryFileName_ = simulationTrajectoryFileName.u8string();
     runner_.edrFileName_                     = simulationEdrFileName.u8string();
     runner_.dhdlFileName_                    = simulationDhdlFileName.u8string();
-    runMdrun(&runner_);
+
+    auto fep_option = std::vector<SimulationOptionTuple>();
+# ifdef FEPONCPU
+    fep_option.emplace_back(SimulationOptionTuple("-fep", "cpu"));
+# else
+    fep_option.emplace_back(SimulationOptionTuple("-fep", "gpu"));
+# endif
+    runMdrun(&runner_, fep_option);
 
     /* Currently used tests write trajectory (x/v/f) frames every 20 steps.
      * Except for the expanded ensemble test, all tests run for 20 steps total.

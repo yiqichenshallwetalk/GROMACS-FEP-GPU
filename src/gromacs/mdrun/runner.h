@@ -220,6 +220,13 @@ private:
      */
     const char* nbpu_opt = nullptr;
 
+    /*! \brief Target fep interactions for "cpu", "gpu", or "auto". Default is "auto".
+     *
+     * \internal
+     * \todo replace with string or enum class and initialize with sensible value.
+     */
+    const char* fep_opt = nullptr;
+
     /*! \brief Target long-range interactions for "cpu", "gpu", or "auto". Default is "auto".
      *
      * \internal
@@ -414,6 +421,23 @@ public:
      * building of an object. This motivates future work to be able to make a deep copy
      * of the detection result. See https://gitlab.com/gromacs/gromacs/-/issues/3650 */
     MdrunnerBuilder& addHardwareDetectionResult(const gmx_hw_info_t* hwinfo);
+
+    /*!
+     * \brief Set up fep force calculations.
+     *
+     * Required. Director code must provide valid options for the non-bonded
+     * interaction code. The builder does not apply any defaults.
+     *
+     * \param fep_opt Target fep interactions for "cpu", "gpu", or "auto".
+     *
+     * Calling must guarantee that the pointed-to C string is valid through
+     * simulation launch.
+     *
+     * \internal
+     * \todo Replace with string or enum that we can have sensible defaults for.
+     * \todo Either the Builder or modular Director code should provide sensible defaults.
+     */
+    MdrunnerBuilder& addFep(const char* fep_opt);
 
     /*!
      * \brief Set up non-bonded short-range force calculations.

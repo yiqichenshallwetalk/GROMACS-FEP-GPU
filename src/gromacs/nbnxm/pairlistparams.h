@@ -135,6 +135,8 @@ struct PairlistParams
     PairlistType pairlistType;
     //! Tells whether we have perturbed interactions
     bool haveFep;
+    //! Tells whether we have perturbed interactions on GPU
+    bool haveFepGpu;
     //! Cut-off of the larger, outer pair-list
     real rlistOuter;
     //! Cut-off of the smaller, inner pair-list

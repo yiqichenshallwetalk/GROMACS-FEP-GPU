@@ -64,6 +64,7 @@ struct DevelopmentFeatureFlags;
  * \param[in] haveSeparatePmeRank Whether separate PME rank(s) are used in this run.
  * \param[in] useGpuForNonbonded Whether we have short-range nonbonded interactions
  *                               calculations on GPU(s).
+ * \param[in] useGpuForFep       Whether we have fep interactions calculations on GPU(s).
  * \param[in] pmeRunMode         Run mode indicating what resource is PME executed on.
  * \param[in] useGpuForBonded    Whether bonded interactions are calculated on GPU(s).
  * \param[in] useGpuForUpdate    Whether coordinate update and constraint solving is performed on
@@ -80,6 +81,7 @@ SimulationWorkload createSimulationWorkload(const t_inputrec& inputrec,
                                             bool       havePpDomainDecomposition,
                                             bool       haveSeparatePmeRank,
                                             bool       useGpuForNonbonded,
+                                            bool       useGpuForFep,
                                             PmeRunMode pmeRunMode,
                                             bool       useGpuForBonded,
                                             bool       useGpuForUpdate,

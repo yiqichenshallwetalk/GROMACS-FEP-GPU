@@ -93,7 +93,8 @@ public:
                             const gmx::ListOfLists<int>&  exclusions,
                             int                           minimumIlistCountForGpuBalancing,
                             t_nrnb*                       nrnb,
-                            SearchCycleCounting*          searchCycleCounting);
+                            SearchCycleCounting*          searchCycleCounting,
+                            bool                          useGpuFep);
 
     //! Dispatch the kernel for dynamic pairlist pruning
     void dispatchPruneKernel(const nbnxn_atomdata_t* nbat, gmx::ArrayRef<const gmx::RVec> shift_vec);
@@ -112,6 +113,24 @@ public:
         {
             return nullptr;
         }
+    }
+
+    //! Returns a pointer to the FEP pairlist, nullptr when not present
+    const std::unique_ptr<t_nblist>* fepList() const
+    {
+        if (!fepLists_.empty())
+        {
+            return &fepLists_[0];
+        }
+        else
+        {
+            return nullptr;
+        }
+    }
+
+    const PairlistParams params() const
+    {
+        return params_;
     }
 
     //! Returns the lists of free-energy pairlists, empty when nonbonded interactions are not perturbed

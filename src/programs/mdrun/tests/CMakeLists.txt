@@ -294,8 +294,8 @@ endif()
 
 # Keeping the FEP tests separate for now to be able to judge runtime more easily
 # Can be included in mdrun tests later
-set(testname "MdrunFEPTests")
-set(exename "mdrun-fep-test")
+set(testname "MdrunFEPonGPUTests")
+set(exename "mdrun-fep-gpu-test")
 
 gmx_add_gtest_executable(${exename}
         CPP_SOURCE_FILES
@@ -304,6 +304,25 @@ gmx_add_gtest_executable(${exename}
         # pseudo-library for code for mdrun
         $<TARGET_OBJECTS:mdrun_objlib>
 )
+target_link_libraries(${exename} PRIVATE mdrun_test_infrastructure)
+# TODO: Link specific modules: topology
+
+# End-to-end test for pull functionality
+target_link_libraries(${exename} PRIVATE legacy_modules)
+gmx_register_gtest_test(${testname} ${exename} OPENMP_THREADS 2 INTEGRATION_TEST IGNORE_LEAKS SLOW_GPU_TEST)
+
+set(testname "MdrunFEPonCPUTests")
+set(exename "mdrun-fep-cpu-test")
+
+gmx_add_gtest_executable(${exename}
+        CPP_SOURCE_FILES
+        # files with code for tests
+        freeenergy.cpp
+        # pseudo-library for code for mdrun
+        $<TARGET_OBJECTS:mdrun_objlib>
+)
+
+target_compile_definitions(${exename} PRIVATE FEPONCPU)
 target_link_libraries(${exename} PRIVATE mdrun_test_infrastructure)
 # TODO: Link specific modules: topology
 

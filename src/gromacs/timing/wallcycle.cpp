@@ -990,6 +990,7 @@ void wallcycle_print(FILE*                            fplog,
             }
         }
         tot_gpu += gpu_nbnxn_t->pruneTime.t;
+        tot_gpu += gpu_nbnxn_t->fepTime.t;
 
         tot_cpu_overlap = wc->wcc[WallCycleCounter::Force].c;
         if (wc->wcc[WallCycleCounter::PmeMesh].n > 0)
@@ -1020,6 +1021,16 @@ void wallcycle_print(FILE*                            fplog,
                 }
             }
         }
+        
+        if (gpu_nbnxn_t->fepTime.c > 0) {
+            // Print FEP kernel time.
+            print_gputimes(fplog,
+                            "Nobonded FEP kernel",
+                            gpu_nbnxn_t->fepTime.c,
+                            gpu_nbnxn_t->fepTime.t,
+                            tot_gpu);
+        }
+
         if (gpu_pme_t)
         {
             for (auto key : keysOf(gpu_pme_t->timing))

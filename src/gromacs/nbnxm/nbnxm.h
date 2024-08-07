@@ -276,6 +276,7 @@ public:
      * \param[in] exclusionChecker  The FEP exclusion checker, is consumed, can be nullptr
      * \param[in] gpu_nbv       The GPU non-bonded setup, ownership is transferred, can be nullptr
      * \param[in] wcycle        Pointer to wallcycle counters, can be nullptr
+     * \param[in] useGpuForFep     Whether to use GPU for FEP calculations
      */
     nonbonded_verlet_t(std::unique_ptr<PairlistSets>     pairlistSets,
                        std::unique_ptr<PairSearch>       pairSearch,
@@ -283,7 +284,8 @@ public:
                        const Nbnxm::KernelSetup&         kernelSetup,
                        std::unique_ptr<ExclusionChecker> exclusionChecker,
                        NbnxmGpu*                         gpu_nbv,
-                       gmx_wallcycle*                    wcycle);
+                       gmx_wallcycle*                    wcycle,
+                       bool                              useGpuForFep);
 
     /*! \brief Constructs an object from its, minimal, components
      *
@@ -344,6 +346,12 @@ public:
     void setAtomProperties(gmx::ArrayRef<const int>     atomTypes,
                            gmx::ArrayRef<const real>    atomCharges,
                            gmx::ArrayRef<const int64_t> atomInfo) const;
+
+    void setAtomPropertiesAB(gmx::ArrayRef<const int>  atomTypesA,
+                             gmx::ArrayRef<const int>  atomTypesB,
+                             gmx::ArrayRef<const real> atomChargesA,
+                             gmx::ArrayRef<const real> atomChargesB,
+                             gmx::ArrayRef<const int64_t>  atomInfo) const;
 
     /*!\brief Convert the coordinates to NBNXM format for the given locality.
      *
@@ -467,6 +475,9 @@ private:
     //! \brief Pointer to wallcycle structure.
     gmx_wallcycle* wcycle_;
 
+    //whether to use GPU for FEP calculations, also affects the pairlist construction kernel
+    bool useGpuForFep_;
+
 public:
     //! GPU Nbnxm data, only used with a physical GPU (TODO: use unique_ptr)
     NbnxmGpu* gpu_nbv;
@@ -482,6 +493,7 @@ std::unique_ptr<nonbonded_verlet_t> init_nb_verlet(const gmx::MDLogger& mdlog,
                                                    const t_commrec*     commrec,
                                                    const gmx_hw_info_t& hardwareInfo,
                                                    bool                 useGpuForNonbonded,
+                                                   bool                 useGpuForFep,
                                                    const gmx::DeviceStreamManager* deviceStreamManager,
                                                    const gmx_mtop_t&               mtop,
                                                    gmx::ObservablesReducerBuilder* observablesReducerBuilder,

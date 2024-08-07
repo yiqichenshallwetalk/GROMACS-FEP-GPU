@@ -166,6 +166,7 @@ public:
                                     MPI_Comm                        gromacsWorldComm,
                                     const PhysicalNodeCommunicator& physicalNodeComm,
                                     TaskTarget                      nonbondedTarget,
+                                    TaskTarget                      fepTarget,
                                     TaskTarget                      pmeTarget,
                                     TaskTarget                      bondedTarget,
                                     TaskTarget                      updateTarget,
