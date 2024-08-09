@@ -88,11 +88,14 @@ static int chooseSubGroupSizeForDevice(const DeviceInformation& deviceInfo)
 
 ListedForcesGpu::Impl::Impl(const gmx_ffparams_t&    ffparams,
                             const float              electrostaticsScaleFactor,
+                            const float              fudgeQQ,
+                            const float              epsFac,
                             const DeviceInformation& deviceInfo,
                             const DeviceContext&     deviceContext,
                             const DeviceStream&      deviceStream,
-                            gmx_wallcycle*           wcycle) :
-    deviceContext_(deviceContext), deviceStream_(deviceStream)
+                            gmx_wallcycle*           wcycle,
+                            bool                     bFEP) :
+    deviceContext_(deviceContext), deviceStream_(deviceStream), bFEP_(bFEP)
 {
     GMX_RELEASE_ASSERT(deviceStream.isValid(),
                        "Can't run GPU version of bonded forces in stream that is not valid.");
@@ -115,13 +118,31 @@ ListedForcesGpu::Impl::Impl(const gmx_ffparams_t&    ffparams,
                        deviceStream_,
                        GpuApiCallBehavior::Sync,
                        nullptr);
+
+    BondedFepParameters bonded_fep = BondedFepParameters();
+    allocateDeviceBuffer(&d_fepParams_, sizeof(BondedFepParameters), deviceContext_);
+    copyToDeviceBuffer(&d_fepParams_,
+                       &bonded_fep,
+                       0,
+                       sizeof(BondedFepParameters),
+                       deviceStream_,
+                       GpuApiCallBehavior::Sync,
+                       nullptr);
+
     vTot_.resize(F_NRE);
     allocateDeviceBuffer(&d_vTot_, F_NRE, deviceContext_);
     clearDeviceBufferAsync(&d_vTot_, 0, F_NRE, deviceStream_);
 
+    dvdlTot_.resize(static_cast<int>(FreeEnergyPerturbationCouplingType::Count));
+    allocateDeviceBuffer(&d_dvdlTot_, static_cast<int>(FreeEnergyPerturbationCouplingType::Count), deviceContext_);
+    clearDeviceBufferAsync(&d_dvdlTot_, 0, static_cast<int>(FreeEnergyPerturbationCouplingType::Count), deviceStream_);
+
     kernelParams_.electrostaticsScaleFactor = electrostaticsScaleFactor;
+    kernelParams_.fudgeQQ = fudgeQQ;
+    kernelParams_.epsFac = epsFac;
     kernelBuffers_.d_forceParams            = d_forceParams_;
     kernelBuffers_.d_vTot                   = d_vTot_;
+    kernelBuffers_.d_dvdlTot               = d_dvdlTot_;
     for (int i = 0; i < numFTypesOnGpu; i++)
     {
         kernelBuffers_.d_iatoms[i]       = nullptr;
@@ -160,7 +181,9 @@ ListedForcesGpu::Impl::~Impl()
     }
 
     freeDeviceBuffer(&d_forceParams_);
+    freeDeviceBuffer(&d_fepParams_);
     freeDeviceBuffer(&d_vTot_);
+    freeDeviceBuffer(&d_dvdlTot_);
 }
 
 //! Return whether function type \p fType in \p idef has perturbed interactions
@@ -219,7 +242,7 @@ void ListedForcesGpu::Impl::updateHaveInteractions(const InteractionDefinitions&
          * But instead of doing all interactions on the CPU, we can
          * still easily handle the types that have no perturbed
          * interactions on the GPU. */
-        if (!idef.il[fType].empty() && !fTypeHasPerturbedEntries(idef, fType))
+        if (!idef.il[fType].empty() && (!fTypeHasPerturbedEntries(idef, fType) || bFEP_))
         {
             haveInteractions_ = true;
             return;
@@ -259,7 +282,7 @@ void ListedForcesGpu::Impl::updateInteractionListsAndDeviceBuffers(ArrayRef<cons
          * But instead of doing all interactions on the CPU, we can
          * still easily handle the types that have no perturbed
          * interactions on the GPU. */
-        if (!idef.il[fType].empty() && !fTypeHasPerturbedEntries(idef, fType))
+        if (!idef.il[fType].empty() && (!fTypeHasPerturbedEntries(idef, fType) || bFEP_))
         {
             haveGpuInteractions = true;
 
@@ -333,6 +356,36 @@ void ListedForcesGpu::Impl::updateInteractionListsAndDeviceBuffers(ArrayRef<cons
     // TODO wallcycle sub stop
 }
 
+void ListedForcesGpu::Impl::updateFepValuesAndDeviceBuffers(DeviceBuffer<Float4>      d_q4Ptr,
+                                                      const bool  bFEP,
+                                                      const float alphaCoul,
+                                                      const float alphaVdw,
+                                                      const float sc_sigma6_def,
+                                                      const float sc_sigma6_min,
+                                                      const float lambdaBonded,
+                                                      const float lambdaCoul,
+                                                      const float lambdaVdw,
+                                                      const float lambdaPower)
+{
+    d_q4_ = d_q4Ptr;
+
+    BondedFepParameters bonded_fep = BondedFepParameters();
+
+    bonded_fep.bFEP          = bFEP;
+    bonded_fep.alphaCoul    = alphaCoul;
+    bonded_fep.alphaVdw     = alphaVdw;
+    bonded_fep.sc_sigma6     = sc_sigma6_def;
+    bonded_fep.sc_sigma6_min = sc_sigma6_min;
+    bonded_fep.lambdaBonded  = lambdaBonded;
+    bonded_fep.lambdaCoul      = lambdaCoul;
+    bonded_fep.lambdaVdw      = lambdaVdw;
+    bonded_fep.lambdaPower      = lambdaPower;
+
+    copyToDeviceBuffer(&d_fepParams_, &bonded_fep, 0, sizeof(BondedFepParameters), deviceStream_,
+                       GpuApiCallBehavior::Sync, nullptr);
+    kernelBuffers_.d_fepParams = d_fepParams_;
+}
+
 void ListedForcesGpu::Impl::setPbc(PbcType pbcType, const matrix box, bool canMoleculeSpanPbc)
 {
     PbcAiuc pbcAiuc;
@@ -354,6 +407,8 @@ void ListedForcesGpu::Impl::launchEnergyTransfer()
     // TODO add conditional on whether there has been any compute (and make sure host buffer doesn't contain garbage)
     float* h_vTot = vTot_.data();
     copyFromDeviceBuffer(h_vTot, &d_vTot_, 0, F_NRE, deviceStream_, GpuApiCallBehavior::Async, nullptr);
+    float* h_dvdlTot = dvdlTot_.data();
+    copyFromDeviceBuffer(h_dvdlTot, &d_dvdlTot_, 0, static_cast<int>(FreeEnergyPerturbationCouplingType::Count), deviceStream_, GpuApiCallBehavior::Async, nullptr);
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::LaunchGpuBonded);
 }
 
@@ -369,7 +424,7 @@ void ListedForcesGpu::Impl::waitAccumulateEnergyTerms(gmx_enerdata_t* enerd)
 
     for (int fType : fTypesOnGpu)
     {
-        if (fType != F_LJ14 && fType != F_COUL14)
+        if (fType != F_LJ14 && fType != F_COUL14 && fType != F_LJC14_Q && fType != F_LJC_PAIRS_NB)
         {
             enerd->term[fType] += vTot_[fType];
         }
@@ -378,8 +433,17 @@ void ListedForcesGpu::Impl::waitAccumulateEnergyTerms(gmx_enerdata_t* enerd)
     // Note: We do not support energy groups here
     gmx_grppairener_t* grppener = &enerd->grpp;
     GMX_RELEASE_ASSERT(grppener->nener == 1, "No energy group support for bondeds on the GPU");
-    grppener->energyGroupPairTerms[NonBondedEnergyTerms::LJ14][0] += vTot_[F_LJ14];
+    grppener->energyGroupPairTerms[NonBondedEnergyTerms::LJ14][0] += vTot_[F_LJ14] + vTot_[F_LJC14_Q];
     grppener->energyGroupPairTerms[NonBondedEnergyTerms::Coulomb14][0] += vTot_[F_COUL14];
+
+    grppener->energyGroupPairTerms[NonBondedEnergyTerms::LJSR][0] += vTot_[F_LJC_PAIRS_NB];
+    grppener->energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR][0] += vTot_[F_COUL_SR];
+
+    // Accumulate dvdl
+    for (auto i : keysOf(enerd->dvdl_lin))
+        {
+            enerd->dvdl_nonlin[i] += dvdlTot_[static_cast<int>(i)];
+        }
 }
 
 void ListedForcesGpu::Impl::clearEnergies()
@@ -387,6 +451,7 @@ void ListedForcesGpu::Impl::clearEnergies()
     wallcycle_start_nocount(wcycle_, WallCycleCounter::LaunchGpuPp);
     wallcycle_sub_start_nocount(wcycle_, WallCycleSubCounter::LaunchGpuBonded);
     clearDeviceBufferAsync(&d_vTot_, 0, F_NRE, deviceStream_);
+    clearDeviceBufferAsync(&d_dvdlTot_, 0, static_cast<int>(FreeEnergyPerturbationCouplingType::Count), deviceStream_);
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::LaunchGpuBonded);
     wallcycle_stop(wcycle_, WallCycleCounter::LaunchGpuPp);
 }
@@ -395,11 +460,14 @@ void ListedForcesGpu::Impl::clearEnergies()
 
 ListedForcesGpu::ListedForcesGpu(const gmx_ffparams_t&    ffparams,
                                  const float              electrostaticsScaleFactor,
+                                 const float              fudgeQQ,
+                                 const float              epsFac,
                                  const DeviceInformation& deviceInfo,
                                  const DeviceContext&     deviceContext,
                                  const DeviceStream&      deviceStream,
-                                 gmx_wallcycle*           wcycle) :
-    impl_(new Impl(ffparams, electrostaticsScaleFactor, deviceInfo, deviceContext, deviceStream, wcycle))
+                                 gmx_wallcycle*           wcycle,
+                                 const bool               bFEP) :
+    impl_(new Impl(ffparams, electrostaticsScaleFactor, fudgeQQ, epsFac, deviceInfo, deviceContext, deviceStream, wcycle, bFEP)), bFEP_(bFEP)
 {
 }
 
@@ -418,6 +486,21 @@ void ListedForcesGpu::updateInteractionListsAndDeviceBuffers(ArrayRef<const int>
             nbnxnAtomOrder, idef, nbnxmAtomDataGpu->xq, nbnxmAtomDataGpu->f, nbnxmAtomDataGpu->fShift);
 }
 
+void ListedForcesGpu::updateFepValuesAndDeviceBuffers(NBAtomDataGpu* nbnxmAtomDataGpu,
+                                                const bool  bFEP,
+                                                const float alphaCoul,
+                                                const float alphaVdw,
+                                                const float sc_sigma6_def,
+                                                const float sc_sigma6_min,
+                                                const float lambdaBonded,
+                                                const float lambdaCoul,
+                                                const float lambdaVdw,
+                                                const float lambdaPower)
+{
+    impl_->updateFepValuesAndDeviceBuffers(nbnxmAtomDataGpu->q4, bFEP, alphaCoul, alphaVdw,
+                                            sc_sigma6_def, sc_sigma6_min, lambdaBonded, lambdaCoul, lambdaVdw, lambdaPower);
+}
+
 void ListedForcesGpu::setPbc(PbcType pbcType, const matrix box, bool canMoleculeSpanPbc)
 {
     impl_->setPbc(pbcType, box, canMoleculeSpanPbc);
@@ -426,6 +509,11 @@ void ListedForcesGpu::setPbc(PbcType pbcType, const matrix box, bool canMolecule
 bool ListedForcesGpu::haveInteractions() const
 {
     return impl_->haveInteractions();
+}
+
+bool ListedForcesGpu::doFEP() const
+{
+    return bFEP_;
 }
 
 void ListedForcesGpu::setPbcAndlaunchKernel(PbcType                  pbcType,

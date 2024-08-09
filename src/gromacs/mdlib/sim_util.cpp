@@ -1671,6 +1671,27 @@ void do_force(FILE*                               fplog,
                 // higher-level object than the nb module.
                 fr->listedForcesGpu->updateInteractionListsAndDeviceBuffers(
                         nbv->getGridIndices(), top->idef, Nbnxm::gpuGetNBAtomData(nbv->gpu_nbv));
+                if (fr->efep != FreeEnergyPerturbationType::No && mdatoms->nPerturbed != 0 && simulationWork.useGpuFep)
+                {
+                    fr->listedForcesGpu->updateFepValuesAndDeviceBuffers(
+                            Nbnxm::gpuGetNBAtomData(nbv->gpu_nbv), 1,
+                            ic->softCoreParameters->alphaCoulomb, ic->softCoreParameters->alphaVdw,
+                            ic->softCoreParameters->sigma6WithInvalidSigma,
+                            ic->softCoreParameters->sigma6Minimum,
+                            lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Bonded)],
+                            lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)],
+                            lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Vdw)],
+                            ic->softCoreParameters->lambdaPower);
+                    if (debug)
+                    {
+                        fprintf(debug,
+                                "Bonded GPU parameters: lambda bonded: %f, lambda coul: %f, lambda vdw: %f \n",
+                                lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Bonded)],
+                                lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)],
+                                lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Vdw)]
+                                );
+                    }
+                }
             }
         }
 
@@ -1914,8 +1935,9 @@ void do_force(FILE*                               fplog,
     // this wait ensures that the D2H transfer is complete.
     if (simulationWork.useGpuUpdate && !stepWork.doNeighborSearch)
     {
+        // Add computeDhdl here for listed_forces foreign_lambda calculation.
         const bool needCoordsOnHost = (runScheduleWork->domainWork.haveCpuLocalForceWork
-                                       || stepWork.computeVirial || simulationWork.computeMuTot);
+                                       || stepWork.computeVirial || simulationWork.computeMuTot || stepWork.computeDhdl);
         const bool haveAlreadyWaited =
                 simulationWork.useCpuHaloExchange
                 || (stepWork.computePmeOnSeparateRank && !pmeSendCoordinatesFromGpu);
@@ -2109,7 +2131,7 @@ void do_force(FILE*                               fplog,
         bool needMolPbc = false;
         for (const auto& listedForces : fr->listedForces)
         {
-            if (listedForces.haveCpuListedForces(*fr->fcdata))
+            if (listedForces.haveCpuListedForces(*fr->fcdata) || inputrec.fepvals->n_lambda > 0)
             {
                 needMolPbc = fr->bMolPBC;
             }
@@ -2351,7 +2373,6 @@ void do_force(FILE*                               fplog,
     const bool alternateGpuWait = (!c_disableAlternatingWait && stepWork.haveGpuPmeOnThisRank
                                    && simulationWork.useGpuNonbonded && !simulationWork.havePpDomainDecomposition
                                    && !stepWork.useGpuFBufferOps && !needEarlyPmeResults);
-
 
     const int expectedLocalFReadyOnDeviceConsumptionCount = getExpectedLocalFReadyOnDeviceConsumptionCount(
             simulationWork, domainWork, stepWork, useOrEmulateGpuNb, alternateGpuWait);

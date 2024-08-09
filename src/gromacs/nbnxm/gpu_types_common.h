@@ -224,7 +224,6 @@ struct NBParamGpu
     bool  bFEP = 0;
     float alpha_coul = 0.0;
     float alpha_vdw = 0.0;
-    //float alpha_bond;
     int   lam_power = 0; // Exponent for the dependence of the soft-core on lambda
     float sc_sigma6 = 0.0;
     float sc_sigma6_min = 0.0;

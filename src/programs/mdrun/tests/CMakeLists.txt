@@ -304,10 +304,10 @@ gmx_add_gtest_executable(${exename}
         # pseudo-library for code for mdrun
         $<TARGET_OBJECTS:mdrun_objlib>
 )
+#target_compile_definitions(${exename} PRIVATE FEPONGPU)
 target_link_libraries(${exename} PRIVATE mdrun_test_infrastructure)
 # TODO: Link specific modules: topology
 
-# End-to-end test for pull functionality
 target_link_libraries(${exename} PRIVATE legacy_modules)
 gmx_register_gtest_test(${testname} ${exename} OPENMP_THREADS 2 INTEGRATION_TEST IGNORE_LEAKS SLOW_GPU_TEST)
 

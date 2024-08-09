@@ -55,6 +55,7 @@ class InteractionDefinitions;
 void setup_bonded_threading(bonded_threading_t*           bt,
                             int                           numAtomsForce,
                             bool                          useGpuForBondeds,
+                            bool                          useGpuForFep,
                             const InteractionDefinitions& idef);
 
 #endif

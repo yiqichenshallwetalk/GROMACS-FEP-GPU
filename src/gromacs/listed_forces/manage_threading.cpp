@@ -198,6 +198,7 @@ static bool ftypeHasPerturbedEntries(const InteractionDefinitions& idef, int fty
 //! Divides bonded interactions over threads and GPU
 static void divide_bondeds_over_threads(bonded_threading_t*           bt,
                                         bool                          useGpuForBondeds,
+                                        bool                          useGpuForFep,
                                         const InteractionDefinitions& idef)
 {
     ilist_data_t ild[F_NRE];
@@ -225,11 +226,9 @@ static void divide_bondeds_over_threads(bonded_threading_t*           bt,
         {
             fTypeGpuIndex++;
 
-            /* Perturbation is not implemented in the GPU bonded kernels.
-             * But instead of doing all on the CPU, we could do only
-             * the actually perturbed interactions on the CPU.
+            /* If Perturbation is done on CPU if useGpuForFep is false.
              */
-            if (!ftypeHasPerturbedEntries(idef, fType))
+            if (!ftypeHasPerturbedEntries(idef, fType) || useGpuForFep)
             {
                 /* We will assign this interaction type to the GPU */
                 nrToAssignToCpuThreads = 0;
@@ -377,12 +376,13 @@ static void calc_bonded_reduction_mask(int                            natoms,
 void setup_bonded_threading(bonded_threading_t*           bt,
                             int                           numAtomsForce,
                             bool                          useGpuForBondeds,
+                            bool                          useGpuForFep,
                             const InteractionDefinitions& idef)
 {
     assert(bt->nthreads >= 1);
 
     /* Divide the bonded interaction over the threads */
-    divide_bondeds_over_threads(bt, useGpuForBondeds, idef);
+    divide_bondeds_over_threads(bt, useGpuForBondeds, useGpuForFep, idef);
 
     if (!bt->haveBondeds)
     {

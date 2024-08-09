@@ -74,7 +74,7 @@ class ArrayRef;
 class StepWorkload;
 
 /*! \brief The number on bonded function types supported on GPUs */
-static constexpr int numFTypesOnGpu = 8;
+static constexpr int numFTypesOnGpu = 11;
 
 /*! \brief List of all bonded function types supported on GPUs
  *
@@ -83,9 +83,10 @@ static constexpr int numFTypesOnGpu = 8;
  * \note The function types in the list are ordered on increasing value.
  * \note Currently bonded are only supported with CUDA and SYCL, not with OpenCL.
  */
-constexpr std::array<int, numFTypesOnGpu> fTypesOnGpu = { F_BONDS,  F_ANGLES, F_UREY_BRADLEY,
-                                                          F_PDIHS,  F_RBDIHS, F_IDIHS,
-                                                          F_PIDIHS, F_LJ14 };
+constexpr std::array<int, numFTypesOnGpu> fTypesOnGpu = { F_BONDS,  F_HARMONIC, F_ANGLES,
+                                                          F_UREY_BRADLEY, F_PDIHS,  F_RBDIHS,
+                                                          F_IDIHS, F_PIDIHS, F_LJ14, F_LJC14_Q,
+                                                          F_LJC_PAIRS_NB};
 
 /*! \brief Checks whether the GROMACS build allows to compute bonded interactions on a GPU.
  *
@@ -115,18 +116,24 @@ public:
      * \param[in] ffparams                   Force-field parameters.
      * \param[in] electrostaticsScaleFactor  Scaling factor for the electrostatic potential
      *                                       (Coulomb constant, multiplied by the Fudge factor).
+     * \param[in] fudgeQQ                    fudge factor.
+     * \param[in] epsFac                     eps factor.
      * \param[in] deviceInfo                 GPU device handle.
      * \param[in] deviceContext              GPU device context (not used in CUDA).
      * \param[in] deviceStream               GPU device stream.
      * \param[in] wcycle                     The wallclock counter.
+     * \param[in] bFEP                       Whether do bonded FEP calculations on GPU.
      *
      */
     ListedForcesGpu(const gmx_ffparams_t&    ffparams,
                     float                    electrostaticsScaleFactor,
+                    float                    fudgeQQ,
+                    float                    epsFac,
                     const DeviceInformation& deviceInfo,
                     const DeviceContext&     deviceContext,
                     const DeviceStream&      deviceStream,
-                    gmx_wallcycle*           wcycle);
+                    gmx_wallcycle*           wcycle,
+                    const bool               bFEP);
     //! Destructor
     ~ListedForcesGpu();
 
@@ -151,6 +158,18 @@ public:
     void updateInteractionListsAndDeviceBuffers(ArrayRef<const int>           nbnxnAtomOrder,
                                                 const InteractionDefinitions& idef,
                                                 NBAtomDataGpu*                nbnxmAtomDataGpu);
+
+    void updateFepValuesAndDeviceBuffers(NBAtomDataGpu* nbnxmAtomDataGpu,
+                                                const bool  bFEP,
+                                                const float alphaCoul,
+                                                const float alphaVdw,
+                                                const float sc_sigma6_def,
+                                                const float sc_sigma6_min,
+                                                const float lambdaBonded,
+                                                const float lambdaCoul,
+                                                const float lambdaVdw,
+                                                const float lambdaPower);
+
     /*! \brief
      * Update PBC data.
      *
@@ -168,6 +187,8 @@ public:
      * \returns If the list of interaction has elements.
      */
     bool haveInteractions() const;
+
+    bool doFEP() const;
 
     /*! \brief Launches bonded kernel on a GPU
      *
@@ -204,6 +225,7 @@ public:
 private:
     class Impl;
     std::unique_ptr<Impl> impl_;
+    bool bFEP_;
 };
 
 } // namespace gmx

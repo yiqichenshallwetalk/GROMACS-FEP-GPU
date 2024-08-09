@@ -153,7 +153,7 @@ public:
      * \param[in] numAtomsForce  Force are, potentially, computed for atoms 0 to \p numAtomsForce
      * \param[in] useGpu         Whether a GPU is used to compute (part of) the listed interactions
      */
-    void setup(const InteractionDefinitions& domainIdef, int numAtomsForce, bool useGpu);
+    void setup(const InteractionDefinitions& domainIdef, int numAtomsForce, bool useGpu, bool useGpuFep);
 
     /*! \brief Do all aspects of energy and force calculations for mdrun
      * on the set of listed interactions

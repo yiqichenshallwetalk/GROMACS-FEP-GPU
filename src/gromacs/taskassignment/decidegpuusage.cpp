@@ -613,6 +613,8 @@ bool decideWhetherToUseGpusForFep(bool              useGpuForNonbonded,
         // found.
         return true;
     }
+
+    return false;
 }
 
 bool decideWhetherToUseGpuForUpdate(const bool           isDomainDecomposition,

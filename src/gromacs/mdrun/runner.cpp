@@ -1828,10 +1828,13 @@ int Mdrunner::mdrunner()
                                "version of bonded forces.");
             fr->listedForcesGpu = std::make_unique<ListedForcesGpu>(mtop.ffparams,
                                                                     fr->ic->epsfac * fr->fudgeQQ,
+                                                                    fr->fudgeQQ,
+                                                                    fr->ic->epsfac,
                                                                     *deviceInfo,
                                                                     deviceStreamManager->context(),
                                                                     deviceStreamManager->bondedStream(),
-                                                                    wcycle.get());
+                                                                    wcycle.get(),
+                                                                    runScheduleWork.simulationWork.useGpuFep);
         }
         fr->longRangeNonbondeds = std::make_unique<CpuPpLongRangeNonbondeds>(fr->n_tpi,
                                                                              fr->ic->ewaldcoeff_q,

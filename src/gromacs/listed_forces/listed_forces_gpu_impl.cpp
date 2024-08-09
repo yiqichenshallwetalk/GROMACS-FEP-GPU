@@ -139,11 +139,14 @@ class ListedForcesGpu::Impl
 
 ListedForcesGpu::ListedForcesGpu(const gmx_ffparams_t& /* ffparams */,
                                  const float /* electrostaticsScaleFactor */,
+                                 const float /* FudgeFactor */,
+                                 const float /* Eps Fracor */,
                                  const DeviceInformation& /*deviceInfo*/,
                                  const DeviceContext& /* deviceContext */,
                                  const DeviceStream& /* deviceStream */,
-                                 gmx_wallcycle* /* wcycle */) :
-    impl_(nullptr)
+                                 gmx_wallcycle* /* wcycle */,
+                                 bool) :
+    impl_(nullptr), bFEP_(false)
 {
 }
 
@@ -157,6 +160,18 @@ void ListedForcesGpu::updateInteractionListsAndDeviceBuffers(ArrayRef<const int>
 {
 }
 
+void ListedForcesGpu::updateFepValuesAndDeviceBuffers(NBAtomDataGpu* nbnxmAtomDataGpu,
+                                                const bool  bFEP,
+                                                const float alphaCoul,
+                                                const float alphaVdw,
+                                                const float sc_sigma6_def,
+                                                const float sc_sigma6_min,
+                                                const float lambdaBonded,
+                                                const float lambdaCoul,
+                                                const float lambdaVdw)
+{
+}
+
 void ListedForcesGpu::setPbc(PbcType /* pbcType */, const matrix /* box */, bool /* canMoleculeSpanPbc */)
 {
 }
@@ -164,6 +179,11 @@ void ListedForcesGpu::setPbc(PbcType /* pbcType */, const matrix /* box */, bool
 bool ListedForcesGpu::haveInteractions() const
 {
     return !impl_;
+}
+
+bool ListedForcesGpu::doFEP() const
+{
+    return bFEP_;
 }
 
 void ListedForcesGpu::launchKernel(const gmx::StepWorkload& /* stepWork */) {}

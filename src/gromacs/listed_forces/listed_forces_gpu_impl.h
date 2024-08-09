@@ -72,6 +72,22 @@ struct HostInteractionList
     HostVector<int> iatoms = { {}, gmx::HostAllocationPolicy(gmx::PinningPolicy::PinnedIfSupported) };
 };
 
+/* \brief Bonded FEP-GPU parameters
+ *
+ */
+struct BondedFepParameters
+{
+    bool  bFEP = 0; /**< whether using free energy perturbation    */
+    float alphaCoul = 0.0;
+    float alphaVdw = 0.0;
+    float sc_sigma6 = 0.0;
+    float sc_sigma6_min = 0.0;
+    float lambdaBonded = 0.0; /**< free energy λ for bonded  interaction */
+    float lambdaCoul = 0.0; /**< free energy λ for coulomb interaction */
+    float lambdaVdw = 0.0; /**< free energy λ for vdw interaction     */
+    float lambdaPower = 0.0;
+};
+
 /* \brief Bonded parameters and GPU pointers
  *
  * This is used to accumulate all the parameters and pointers so they can be passed
@@ -82,8 +98,10 @@ struct BondedGpuKernelParameters
 {
     //! Periodic boundary data
     PbcAiuc pbcAiuc;
-    //! Scale factor
+    //! Scale factors
     float electrostaticsScaleFactor;
+    float                    fudgeQQ;
+    float                    epsFac;
     //! The bonded types on GPU
     int fTypesOnGpu[numFTypesOnGpu];
     //! The number of bonds for every function type
@@ -97,6 +115,8 @@ struct BondedGpuKernelParameters
         matrix boxDummy = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
         setPbcAiuc(0, boxDummy, &pbcAiuc);
         electrostaticsScaleFactor = 1.0F;
+        fudgeQQ         = 1.0F;
+        epsFac          = 1.0F;
     }
 };
 struct BondedGpuKernelBuffers
@@ -105,8 +125,13 @@ struct BondedGpuKernelBuffers
     DeviceBuffer<t_iparams> d_forceParams = nullptr;
     //! Total Energy (on GPU)
     DeviceBuffer<float> d_vTot = nullptr;
+    //! Total DhDl (on GPU)
+    DeviceBuffer<float> d_dvdlTot = nullptr;
     //! Interaction list atoms (on GPU)
     DeviceBuffer<t_iatom> d_iatoms[numFTypesOnGpu];
+
+    //! Free energy pertubation params (on GPU)
+    DeviceBuffer<BondedFepParameters> d_fepParams = nullptr;
 };
 
 /*! \internal \brief Implements GPU bondeds */
@@ -116,10 +141,13 @@ public:
     //! Constructor
     Impl(const gmx_ffparams_t&    ffparams,
          float                    electrostaticsScaleFactor,
+         float                    fudgeQQ,
+         float                    epsFac,
          const DeviceInformation& deviceInfo,
          const DeviceContext&     deviceContext,
          const DeviceStream&      deviceStream,
-         gmx_wallcycle*           wcycle);
+         gmx_wallcycle*           wcycle,
+         bool                     bFEP);
     //! \brief Destructor, non-default needed for freeing device-side buffers
     ~Impl();
 
@@ -141,6 +169,19 @@ public:
                                                 DeviceBuffer<Float4>          d_xqPtr,
                                                 DeviceBuffer<RVec>            d_fPtr,
                                                 DeviceBuffer<RVec>            d_fShiftPtr);
+    /*! \brief Update FEP params for the GPU. */
+    void updateFepValuesAndDeviceBuffers(DeviceBuffer<Float4>       q4Device,
+                                         //DeviceBuffer<float>       qBDevice,
+                                         const bool  bFEP,
+                                         const float alphaCoul,
+                                         const float alphaVdw,
+                                         const float sc_sigma6_def,
+                                         const float sc_sigma6_min,
+                                         const float lambdaBonded,
+                                         const float lambdaCoul,
+                                         const float lambdaVdw,
+                                         const float lambdaPower);
+
     /*! \brief
      * Update PBC data.
      *
@@ -174,11 +215,14 @@ private:
 
     //! Tells whether there are any interaction in iLists.
     bool haveInteractions_;
+    bool bFEP_;
     //! Interaction lists on the device.
     std::array<DeviceBuffer<t_iatom>, F_NRE> d_iAtoms_      = {};
     std::array<int, F_NRE>                   d_iAtomsAlloc_ = {};
     //! Bonded parameters for device-side use.
     DeviceBuffer<t_iparams> d_forceParams_ = nullptr;
+    //! Free energy params for device-side use.
+    DeviceBuffer<BondedFepParameters> d_fepParams_ = nullptr;
     //! Position-charge vector on the device.
     DeviceBuffer<Float4> d_xq_ = nullptr;
     //! Force vector on the device.
@@ -189,6 +233,14 @@ private:
     HostVector<float> vTot_ = { {}, gmx::HostAllocationPolicy(gmx::PinningPolicy::PinnedIfSupported) };
     //! \brief Device-side total virial
     DeviceBuffer<float> d_vTot_ = nullptr;
+    //! \brief Host-side dhdl buffer
+    HostVector<float> dvdlTot_ = { {}, gmx::HostAllocationPolicy(gmx::PinningPolicy::PinnedIfSupported) };
+    //! \brief Device-side total dhdl
+    DeviceBuffer<float> d_dvdlTot_ = nullptr;
+
+
+    //! QA&QB vector on the device.
+    DeviceBuffer<Float4> d_q4_ = nullptr;
 
     //! GPU context object
     const DeviceContext& deviceContext_;

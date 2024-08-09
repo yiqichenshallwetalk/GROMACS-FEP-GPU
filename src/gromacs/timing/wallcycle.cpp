@@ -171,6 +171,12 @@ static const char* enumValuetoString(WallCycleSubCounter enumValue)
         "Launch GPU NB tasks",
         "Launch GPU Bonded",
         "Launch state copy",
+        "Launch coords to g",
+        "Launch coords from g",
+        "Launch vels to g",
+        "Launch vels from g",
+        "Launch forces to g",
+        "Launch forces from g",
         "Ewald F correction",
         "NB X buffer ops.",
         "NB F buffer ops.",
@@ -1021,7 +1027,7 @@ void wallcycle_print(FILE*                            fplog,
                 }
             }
         }
-        
+
         if (gpu_nbnxn_t->fepTime.c > 0) {
             // Print FEP kernel time.
             print_gputimes(fplog,

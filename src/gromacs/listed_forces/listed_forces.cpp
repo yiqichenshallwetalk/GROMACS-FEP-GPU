@@ -140,7 +140,7 @@ static void selectInteractions(InteractionDefinitions*                  idef,
     }
 }
 
-void ListedForces::setup(const InteractionDefinitions& domainIdef, const int numAtomsForce, const bool useGpu)
+void ListedForces::setup(const InteractionDefinitions& domainIdef, const int numAtomsForce, const bool useGpu, const bool useGpuFep)
 {
     if (interactionSelection_.all())
     {
@@ -167,7 +167,7 @@ void ListedForces::setup(const InteractionDefinitions& domainIdef, const int num
         }
     }
 
-    setup_bonded_threading(threading_.get(), numAtomsForce, useGpu, *idef_);
+    setup_bonded_threading(threading_.get(), numAtomsForce, useGpu, useGpuFep, *idef_);
 
     if (idef_->ilsort == ilsortFE_SORTED)
     {

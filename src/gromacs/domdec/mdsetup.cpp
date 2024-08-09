@@ -40,6 +40,7 @@
 #include "gromacs/domdec/localtopology.h"
 #include "gromacs/ewald/pme.h"
 #include "gromacs/listed_forces/listed_forces.h"
+#include "gromacs/listed_forces/listed_forces_gpu.h"
 #include "gromacs/mdlib/constr.h"
 #include "gromacs/mdlib/mdatoms.h"
 #include "gromacs/mdlib/vsite.h"
@@ -135,7 +136,7 @@ void mdAlgorithmsSetupAtomData(const t_commrec*     cr,
 
     for (auto& listedForces : fr->listedForces)
     {
-        listedForces.setup(top->idef, fr->natoms_force, fr->listedForcesGpu != nullptr);
+        listedForces.setup(top->idef, fr->natoms_force, fr->listedForcesGpu != nullptr, (fr->listedForcesGpu != nullptr && fr->listedForcesGpu->doFEP()));
     }
 
     if ((usingPme(fr->ic->eeltype) || usingLJPme(fr->ic->vdwtype)) && (cr->duty & DUTY_PME))
