@@ -226,7 +226,7 @@ static void divide_bondeds_over_threads(bonded_threading_t*           bt,
         {
             fTypeGpuIndex++;
 
-            /* If Perturbation is done on CPU if useGpuForFep is false.
+            /* If Perturbation is done on CPU or if useGpuForFep is false.
              */
             if (!ftypeHasPerturbedEntries(idef, fType) || useGpuForFep)
             {
@@ -253,7 +253,6 @@ static void divide_bondeds_over_threads(bonded_threading_t*           bt,
             /* On up to 4 threads, load balancing the bonded work
              * is more important than minimizing the reduction cost.
              */
-
             const int stride = 1 + NRAL(fType);
 
             for (int t = 0; t <= numThreads; t++)

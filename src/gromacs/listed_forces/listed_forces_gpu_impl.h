@@ -85,6 +85,7 @@ struct BondedFepParameters
     float lambdaBonded = 0.0; /**< free energy λ for bonded  interaction */
     float lambdaCoul = 0.0; /**< free energy λ for coulomb interaction */
     float lambdaVdw = 0.0; /**< free energy λ for vdw interaction     */
+    float lambdaRestr = 0.0; /**< free energy λ for restarints     */
     float lambdaPower = 0.0;
 };
 
@@ -180,6 +181,7 @@ public:
                                          const float lambdaBonded,
                                          const float lambdaCoul,
                                          const float lambdaVdw,
+                                         const float lambdaRestr,
                                          const float lambdaPower);
 
     /*! \brief

@@ -168,7 +168,8 @@ void ListedForcesGpu::updateFepValuesAndDeviceBuffers(NBAtomDataGpu* nbnxmAtomDa
                                                 const float sc_sigma6_min,
                                                 const float lambdaBonded,
                                                 const float lambdaCoul,
-                                                const float lambdaVdw)
+                                                const float lambdaVdw,
+                                                const float lambdaRestr)
 {
 }
 
