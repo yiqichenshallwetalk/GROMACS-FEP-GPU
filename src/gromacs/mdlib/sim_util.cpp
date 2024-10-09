@@ -1681,14 +1681,16 @@ void do_force(FILE*                               fplog,
                             lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Bonded)],
                             lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)],
                             lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Vdw)],
+                            lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Restraint)],
                             ic->softCoreParameters->lambdaPower);
                     if (debug)
                     {
                         fprintf(debug,
-                                "Bonded GPU parameters: lambda bonded: %f, lambda coul: %f, lambda vdw: %f \n",
+                                "Bonded GPU parameters: lambda bonded: %f, lambda coul: %f, lambda vdw: %f, lambda restraint: %f.\n",
                                 lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Bonded)],
                                 lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)],
-                                lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Vdw)]
+                                lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Vdw)],
+                                lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Restraint)]
                                 );
                     }
                 }

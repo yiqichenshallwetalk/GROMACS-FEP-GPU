@@ -365,6 +365,7 @@ void ListedForcesGpu::Impl::updateFepValuesAndDeviceBuffers(DeviceBuffer<Float4>
                                                       const float lambdaBonded,
                                                       const float lambdaCoul,
                                                       const float lambdaVdw,
+                                                      const float lambdaRestr,
                                                       const float lambdaPower)
 {
     d_q4_ = d_q4Ptr;
@@ -379,6 +380,7 @@ void ListedForcesGpu::Impl::updateFepValuesAndDeviceBuffers(DeviceBuffer<Float4>
     bonded_fep.lambdaBonded  = lambdaBonded;
     bonded_fep.lambdaCoul      = lambdaCoul;
     bonded_fep.lambdaVdw      = lambdaVdw;
+    bonded_fep.lambdaRestr      = lambdaRestr;
     bonded_fep.lambdaPower      = lambdaPower;
 
     copyToDeviceBuffer(&d_fepParams_, &bonded_fep, 0, sizeof(BondedFepParameters), deviceStream_,
@@ -495,10 +497,11 @@ void ListedForcesGpu::updateFepValuesAndDeviceBuffers(NBAtomDataGpu* nbnxmAtomDa
                                                 const float lambdaBonded,
                                                 const float lambdaCoul,
                                                 const float lambdaVdw,
+                                                const float lambdaRestr,
                                                 const float lambdaPower)
 {
     impl_->updateFepValuesAndDeviceBuffers(nbnxmAtomDataGpu->q4, bFEP, alphaCoul, alphaVdw,
-                                            sc_sigma6_def, sc_sigma6_min, lambdaBonded, lambdaCoul, lambdaVdw, lambdaPower);
+                                            sc_sigma6_def, sc_sigma6_min, lambdaBonded, lambdaCoul, lambdaVdw, lambdaRestr, lambdaPower);
 }
 
 void ListedForcesGpu::setPbc(PbcType pbcType, const matrix box, bool canMoleculeSpanPbc)
