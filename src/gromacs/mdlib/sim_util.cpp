@@ -976,7 +976,9 @@ static DomainLifetimeWorkload setupDomainLifetimeWorkload(const t_inputrec&     
     domainWork.haveFreeEnergyWork =
             (fr.efep != FreeEnergyPerturbationType::No && mdatoms.nPerturbed != 0);
     // haveFreeEnergyWork on CPU
-    domainWork.haveCpuFreeEnergyWork = domainWork.haveFreeEnergyWork && (!simulationWork.useGpuFep || fr.efep == FreeEnergyPerturbationType::Expanded);
+    domainWork.haveCpuFreeEnergyWork =
+            domainWork.haveFreeEnergyWork
+            && (simulationWork.useCpuFep || fr.efep == FreeEnergyPerturbationType::Expanded);
     // We assume we have local force work if there are CPU
     // force tasks including PME or nonbondeds.
     domainWork.haveCpuLocalForceWork =

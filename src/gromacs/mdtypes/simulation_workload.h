@@ -172,6 +172,8 @@ public:
     bool useCpuNonbonded = false;
     //! If we have calculation of short range nonbondeds on GPU
     bool useGpuNonbonded = false;
+    //! If we have calculation of fep on CPU
+    bool useCpuFep = false;
     //! If we have calculation of fep on GPU
     bool useGpuFep = false;
     //! If we have calculation of long range PME in GPU
