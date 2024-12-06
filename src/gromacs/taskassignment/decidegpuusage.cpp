@@ -586,8 +586,7 @@ bool decideWhetherToUseGpusForBonded(bool              useGpuForNonbonded,
     return gpusWereDetected && usingOurCpuForPmeOrEwald;
 }
 
-bool decideWhetherToUseGpusForFep(bool              useGpuForNonbonded,
-                                     TaskTarget        fepTarget)
+bool decideWhetherToUseGpusForFep(bool useGpuForNonbonded, TaskTarget fepTarget)
 {
     if (fepTarget == TaskTarget::Cpu)
     {

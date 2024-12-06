@@ -161,15 +161,16 @@ void ListedForcesGpu::updateInteractionListsAndDeviceBuffers(ArrayRef<const int>
 }
 
 void ListedForcesGpu::updateFepValuesAndDeviceBuffers(NBAtomDataGpu* nbnxmAtomDataGpu,
-                                                const bool  bFEP,
-                                                const float alphaCoul,
-                                                const float alphaVdw,
-                                                const float sc_sigma6_def,
-                                                const float sc_sigma6_min,
-                                                const float lambdaBonded,
-                                                const float lambdaCoul,
-                                                const float lambdaVdw,
-                                                const float lambdaRestr)
+                                                      const bool     bFEP,
+                                                      const float    alphaCoul,
+                                                      const float    alphaVdw,
+                                                      const float    sc_sigma6_def,
+                                                      const float    sc_sigma6_min,
+                                                      const float    lambdaBonded,
+                                                      const float    lambdaCoul,
+                                                      const float    lambdaVdw,
+                                                      const float    lambdaRestr,
+                                                      const float    lambdaPower)
 {
 }
 

@@ -36,7 +36,6 @@
  *
  *  \author Szilard Pall <pall.szilard@gmail.com>
  *  \author Mark Abraham <mark.j.abraham@gmail.com>
- *  \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  *  \ingroup module_nbnxm
  */
 
@@ -45,8 +44,8 @@
 
 #include "gromacs/gpu_utils/gpu_macros.h"
 #include "gromacs/math/vectypes.h"
-#include "gromacs/mdtypes/locality.h"
 #include "gromacs/mdtypes/enerdata.h"
+#include "gromacs/mdtypes/locality.h"
 #include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/real.h"
@@ -200,15 +199,15 @@ void gpu_launch_cpyback(NbnxmGpu gmx_unused* nb,
  * \returns                   True if the nonbonded tasks associated with \p aloc locality have completed
  */
 GPU_FUNC_QUALIFIER
-bool gpu_try_finish_task(NbnxmGpu gmx_unused*    nb,
+bool gpu_try_finish_task(NbnxmGpu gmx_unused*                nb,
                          const gmx::StepWorkload gmx_unused& stepWork,
                          gmx::AtomLocality gmx_unused        aloc,
-                         real gmx_unused* e_lj,
+                         real gmx_unused*                    e_lj,
                          real gmx_unused*                    e_el,
-                         double gmx_unused*                 dvdl_lj,
-                         double gmx_unused*                 dvdl_el,
+                         double gmx_unused*                  dvdl_lj,
+                         double gmx_unused*                  dvdl_el,
                          gmx::ArrayRef<gmx::RVec> gmx_unused shiftForces,
-                         ForeignLambdaTerms* gmx_unused  foreign_term,
+                         ForeignLambdaTerms* gmx_unused      foreign_term,
                          GpuTaskCompletion gmx_unused        completionKind,
                          gmx_wallcycle gmx_unused* wcycle) GPU_FUNC_TERM_WITH_RETURN(false);
 
@@ -228,11 +227,11 @@ bool gpu_try_finish_task(NbnxmGpu gmx_unused*    nb,
  * \param[out] wcycle Pointer to wallcycle data structure
  * \return     The number of cycles the gpu wait took            */
 GPU_FUNC_QUALIFIER
-float gpu_wait_finish_task(NbnxmGpu gmx_unused*    nb,
+float gpu_wait_finish_task(NbnxmGpu gmx_unused*                nb,
                            const gmx::StepWorkload gmx_unused& stepWork,
                            gmx::AtomLocality gmx_unused        aloc,
-                           const bool gmx_unused              haveSoftCore,
-                           gmx_enerdata_t* gmx_unused         enerd,
+                           const bool gmx_unused               haveSoftCore,
+                           gmx_enerdata_t* gmx_unused          enerd,
                            gmx::ArrayRef<gmx::RVec> gmx_unused shiftForces,
                            gmx_wallcycle gmx_unused* wcycle) GPU_FUNC_TERM_WITH_RETURN(0.0);
 
@@ -312,4 +311,4 @@ bool haveGpuShortRangeWork(const NbnxmGpu gmx_unused* nb, gmx::InteractionLocali
         GPU_FUNC_TERM_WITH_RETURN(false);
 
 } // namespace Nbnxm
-#endif
+#endif

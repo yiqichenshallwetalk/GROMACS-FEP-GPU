@@ -226,8 +226,7 @@ static void divide_bondeds_over_threads(bonded_threading_t*           bt,
         {
             fTypeGpuIndex++;
 
-            /* If Perturbation is done on CPU or if useGpuForFep is false.
-             */
+            /* If on perturbations needed or if useGpuForFep is false.*/
             if (!ftypeHasPerturbedEntries(idef, fType) || useGpuForFep)
             {
                 /* We will assign this interaction type to the GPU */

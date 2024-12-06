@@ -35,7 +35,6 @@
  * \brief Common functions for the different NBNXN GPU implementations.
  *
  * \author Szilard Pall <pall.szilard@gmail.com>
- * \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  *
  * \ingroup module_nbnxm
  */
@@ -143,8 +142,8 @@ static inline void gpu_reduce_staged_outputs(const NBStagingData&      nbst,
                                              const bool                reduceFshift,
                                              real*                     e_lj,
                                              real*                     e_el,
-                                             double*                     dvdl_lj,
-                                             double*                     dvdl_el,
+                                             double*                   dvdl_lj,
+                                             double*                   dvdl_el,
                                              rvec*                     fshift)
 {
     /* add up energies and shift forces (only once at local F wait) */
@@ -366,6 +365,7 @@ bool gpu_try_finish_task(NbnxmGpu*                nb,
                                       dvdl_el,
                                       as_rvec_array(shiftForces.data()));
         }
+        // reduce foreign energies
         if (nb->n_lambda > 0 && stepWork.computeDhdl) {
             gpu_reduce_staged_foreign_term(nb->nbst,
                                       iLocality,

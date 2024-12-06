@@ -36,7 +36,6 @@
  *  Functionality for per-atom data in the nbnxm module
  *
  *  \author Berk Hess <hess@kth.se>
- *  \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  *  \ingroup module_nbnxm
  *  \inlibraryapi
  */
@@ -202,7 +201,7 @@ struct nbnxn_atomdata_t
         gmx::HostVector<real> lj_comb;
         //! Charges per atom, not set with format nbatXYZQ
         gmx::HostVector<real> q;
-        // FEP stuff
+        // FEP Params
         //! Atom types of stateA per atom
         gmx::HostVector<int> typeA;
         //! LJ parameters of stateA per atom for fast SIMD loading
@@ -345,13 +344,13 @@ void nbnxn_atomdata_set(nbnxn_atomdata_t*            nbat,
                         gmx::ArrayRef<const real>    atomCharges,
                         gmx::ArrayRef<const int64_t> atomInfo);
 
-void nbnxn_atomdata_setAB(nbnxn_atomdata_t*       nbat,
-                        const Nbnxm::GridSet&   gridSet,
-                        gmx::ArrayRef<const int>   atomTypesA,
-                        gmx::ArrayRef<const int>   atomTypesB,
-                        gmx::ArrayRef<const real>  atomChargesA,
-                        gmx::ArrayRef<const real>  atomChargesB,
-                        gmx::ArrayRef<const int64_t> atomInfo);
+void nbnxn_atomdata_setAB(nbnxn_atomdata_t*            nbat,
+                          const Nbnxm::GridSet&        gridSet,
+                          gmx::ArrayRef<const int>     atomTypesA,
+                          gmx::ArrayRef<const int>     atomTypesB,
+                          gmx::ArrayRef<const real>    atomChargesA,
+                          gmx::ArrayRef<const real>    atomChargesB,
+                          gmx::ArrayRef<const int64_t> atomInfo);
 
 //! Copy the shift vectors to nbat
 void nbnxn_atomdata_copy_shiftvec(bool dynamic_box, gmx::ArrayRef<gmx::RVec> shift_vec, nbnxn_atomdata_t* nbat);

@@ -37,7 +37,6 @@
  * Implements the Nbnxm class
  *
  * \author Berk Hess <hess@kth.se>
- * \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  * \ingroup module_nbnxm
  */
 

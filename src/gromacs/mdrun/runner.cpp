@@ -883,7 +883,7 @@ int Mdrunner::mdrunner()
     }
     GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
     auto nonbondedTarget = findTaskTarget(nbpu_opt);
-    auto fepTarget = findTaskTarget(fep_opt);
+    auto fepTarget       = findTaskTarget(fep_opt);
     auto pmeTarget       = findTaskTarget(pme_opt);
     auto pmeFftTarget    = findTaskTarget(pme_fft_opt);
     auto bondedTarget    = findTaskTarget(bonded_opt);
@@ -1030,7 +1030,7 @@ int Mdrunner::mdrunner()
     // alongside a nonbonded task, so do not influence task assignment
     // even though they affect the force calculation workload.
     bool useGpuForNonbonded = false;
-    bool useGpuForFep = false;
+    bool useGpuForFep       = false;
     bool useGpuForPme       = false;
     bool useGpuForBonded    = false;
     bool useGpuForUpdate    = false;
@@ -2644,7 +2644,7 @@ Mdrunner Mdrunner::BuilderImplementation::build()
     }
     else
     {
-        GMX_THROW(gmx::APIError("MdrunnerBuilder::addNonBonded() is required before build()"));
+        GMX_THROW(gmx::APIError("MdrunnerBuilder::addFep() is required before build()"));
     }
 
     if (pme_opt_ && pme_fft_opt_)

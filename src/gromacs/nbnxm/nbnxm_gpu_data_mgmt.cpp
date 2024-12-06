@@ -39,7 +39,6 @@
  *  \author Teemu Virolainen <teemu@streamcomputing.eu>
  *  \author Szilárd Páll <pall.szilard@gmail.com>
  *  \author Artem Zhmurov <zhmurov@gmail.com>
- * \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  *
  *  \ingroup module_nbnxm
  */
@@ -252,8 +251,7 @@ static inline void init_feplist(gpu_feplist* pl)
 {
     /* initialize to nullptr pointers to data that is not allocated here and will
        need reallocation in nbnxn_gpu_init_feplist */
-    pl->iinr   = nullptr;
-    pl->gid    = nullptr;
+    pl->iinr    = nullptr;
     pl->shift  = nullptr;
     pl->jindex = nullptr;
     pl->jjnr   = nullptr;
@@ -264,6 +262,12 @@ static inline void init_feplist(gpu_feplist* pl)
     pl->maxnri        = -1;
     pl->nrj           = -1;
     pl->maxnrj        = -1;
+    pl->nshift        = -1;
+    pl->maxnshift     = -1;
+    pl->njidx         = -1;
+    pl->maxnjidx      = -1;
+    pl->nexcl         = -1;
+    pl->maxnexcl      = -1;
     pl->haveFreshList = false;
 }
 
@@ -777,7 +781,7 @@ void gpu_init_feppairlist(NbnxmGpu* nb, t_nblist* h_feplist, const InteractionLo
         iinr_inv[i] = atomIndicesInv[h_feplist->iinr[i]];
     }
 
-    gmx::HostVector<int> jjnr_inv(nrj+32, 0);
+    gmx::HostVector<int> jjnr_inv(nrj, 0);
     gmx::changePinningPolicy(&jjnr_inv, gmx::PinningPolicy::PinnedIfSupported);
     for (int j = 0; j < nrj; j ++) {
         jjnr_inv[j] = atomIndicesInv[h_feplist->jjnr[j]];
@@ -805,12 +809,6 @@ void gpu_init_feppairlist(NbnxmGpu* nb, t_nblist* h_feplist, const InteractionLo
     const DeviceStream& deviceStream = *nb->deviceStreams[iloc];
     gpu_feplist* d_feplist = nb->feplist[iloc];
 
-    if (nri < 0)
-    {
-        d_feplist->nri = nri;
-        d_feplist->nrj = nrj;
-    }
-
     GpuTimers::Interaction& iTimers = nb->timers->interaction[iloc];
 
     if (bDoTime)
@@ -820,28 +818,26 @@ void gpu_init_feppairlist(NbnxmGpu* nb, t_nblist* h_feplist, const InteractionLo
     }
 
     const DeviceContext& deviceContext = *nb->deviceContext_;
-    d_feplist->maxnri = 0;
     reallocateDeviceBuffer(&d_feplist->iinr, nri, &d_feplist->nri, &d_feplist->maxnri, deviceContext);
     copyToDeviceBuffer(&d_feplist->iinr,
-                        iinr_inv.data(),
-                        0,
-                        nri,
-                        deviceStream,
+                       iinr_inv.data(),
+                       0,
+                       nri,
+                       deviceStream,
                        GpuApiCallBehavior::Async,
                        bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
-    d_feplist->maxnri = 0;
 
-    reallocateDeviceBuffer(&d_feplist->jindex, nri+1, &d_feplist->nri, &d_feplist->maxnri, deviceContext);
+    reallocateDeviceBuffer(
+            &d_feplist->jindex, nri + 1, &d_feplist->njidx, &d_feplist->maxnjidx, deviceContext);
     copyToDeviceBuffer(&d_feplist->jindex,
-                        jindex.data(),
-                        0,
-                        nri+1,
-                        deviceStream,
+                       jindex.data(),
+                       0,
+                       nri + 1,
+                       deviceStream,
                        GpuApiCallBehavior::Async,
                        bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
-    d_feplist->maxnri = 0;
 
-    reallocateDeviceBuffer(&d_feplist->shift, nri, &d_feplist->nri, &d_feplist->maxnri, deviceContext);
+    reallocateDeviceBuffer(&d_feplist->shift, nri, &d_feplist->nshift, &d_feplist->maxnshift, deviceContext);
     copyToDeviceBuffer(&d_feplist->shift,
                         shift.data(),
                         0,
@@ -850,18 +846,16 @@ void gpu_init_feppairlist(NbnxmGpu* nb, t_nblist* h_feplist, const InteractionLo
                        GpuApiCallBehavior::Async,
                        bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
 
-    d_feplist->maxnrj = 0;
-    reallocateDeviceBuffer(&d_feplist->jjnr, nrj+32, &d_feplist->nrj, &d_feplist->maxnrj, deviceContext);
+    reallocateDeviceBuffer(&d_feplist->jjnr, nrj, &d_feplist->nrj, &d_feplist->maxnrj, deviceContext);
     copyToDeviceBuffer(&d_feplist->jjnr,
-                        jjnr_inv.data(),
-                        0,
-                        nrj+32,
-                        deviceStream,
+                       jjnr_inv.data(),
+                       0,
+                       nrj,
+                       deviceStream,
                        GpuApiCallBehavior::Async,
                        bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
-    d_feplist->maxnrj = 0;
 
-    reallocateDeviceBuffer(&d_feplist->excl_fep, nrj, &d_feplist->nrj, &d_feplist->maxnrj, deviceContext);
+    reallocateDeviceBuffer(&d_feplist->excl_fep, nrj, &d_feplist->nexcl, &d_feplist->maxnexcl, deviceContext);
     copyToDeviceBuffer(&d_feplist->excl_fep,
                         excl_fep.data(),
                         0,
@@ -1607,7 +1601,6 @@ void gpu_free(NbnxmGpu* nb)
     if (nbparam->bFEP) {
         auto* feplist = nb->feplist[InteractionLocality::Local];
         freeDeviceBuffer(&feplist->iinr);
-        freeDeviceBuffer(&feplist->gid);
         freeDeviceBuffer(&feplist->shift);
         freeDeviceBuffer(&feplist->jindex);
         freeDeviceBuffer(&feplist->jjnr);
@@ -1626,13 +1619,12 @@ void gpu_free(NbnxmGpu* nb)
 
         if (nbparam->bFEP) {
         auto* feplist_nl = nb->feplist[InteractionLocality::NonLocal];
-            freeDeviceBuffer(&feplist_nl->iinr);
-            freeDeviceBuffer(&feplist_nl->gid);
-            freeDeviceBuffer(&feplist_nl->shift);
-            freeDeviceBuffer(&feplist_nl->jindex);
-            freeDeviceBuffer(&feplist_nl->jjnr);
-            freeDeviceBuffer(&feplist_nl->excl_fep);
-            delete feplist_nl;
+        freeDeviceBuffer(&feplist_nl->iinr);
+        freeDeviceBuffer(&feplist_nl->shift);
+        freeDeviceBuffer(&feplist_nl->jindex);
+        freeDeviceBuffer(&feplist_nl->jjnr);
+        freeDeviceBuffer(&feplist_nl->excl_fep);
+        delete feplist_nl;
         }
     }
 

@@ -238,10 +238,6 @@ void ListedForcesGpu::Impl::updateHaveInteractions(const InteractionDefinitions&
 
     for (int fType : fTypesOnGpu)
     {
-        /* Perturbation is not implemented in the GPU bonded kernels.
-         * But instead of doing all interactions on the CPU, we can
-         * still easily handle the types that have no perturbed
-         * interactions on the GPU. */
         if (!idef.il[fType].empty() && (!fTypeHasPerturbedEntries(idef, fType) || bFEP_))
         {
             haveInteractions_ = true;
@@ -278,10 +274,6 @@ void ListedForcesGpu::Impl::updateInteractionListsAndDeviceBuffers(ArrayRef<cons
     {
         auto& iList = iLists_[fType];
 
-        /* Perturbation is not implemented in the GPU bonded kernels.
-         * But instead of doing all interactions on the CPU, we can
-         * still easily handle the types that have no perturbed
-         * interactions on the GPU. */
         if (!idef.il[fType].empty() && (!fTypeHasPerturbedEntries(idef, fType) || bFEP_))
         {
             haveGpuInteractions = true;
@@ -441,7 +433,7 @@ void ListedForcesGpu::Impl::waitAccumulateEnergyTerms(gmx_enerdata_t* enerd)
     grppener->energyGroupPairTerms[NonBondedEnergyTerms::LJSR][0] += vTot_[F_LJC_PAIRS_NB];
     grppener->energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR][0] += vTot_[F_COUL_SR];
 
-    // Accumulate dvdl
+    // Accumulate bonded dvdl
     for (auto i : keysOf(enerd->dvdl_lin))
         {
             enerd->dvdl_nonlin[i] += dvdlTot_[static_cast<int>(i)];

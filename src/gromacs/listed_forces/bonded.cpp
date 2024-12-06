@@ -254,10 +254,10 @@ real morse_bonds(int             nbonds,
                  real            lambda,
                  real*           dvdlambda,
                  gmx::ArrayRef<const real> /*charge*/,
-                 t_fcdata gmx_unused* fcd,
+                 t_fcdata gmx_unused*     fcd,
                  t_disresdata gmx_unused* disresdata,
                  t_oriresdata gmx_unused* oriresdata,
-                 int gmx_unused* global_atom_index)
+                 int gmx_unused*          global_atom_index)
 {
     const real one = 1.0;
     const real two = 2.0;
@@ -308,26 +308,26 @@ real morse_bonds(int             nbonds,
                       - (2 - 2 * omtemp) * omtemp * cb * ((b0B - b0A) * be - (beB - beA) * (dr - b0)); /* 15 */
 
         spreadBondForces<flavor>(fbond, dx, ai, aj, f, ki, fshift); /* 15 */
-    }                                                               /*  83 TOTAL    */
+    } /*  83 TOTAL    */
     return vtot;
 }
 
 //! \cond
 template<BondedKernelFlavor flavor>
-real cubic_bonds(int             nbonds,
-                 const t_iatom   forceatoms[],
-                 const t_iparams forceparams[],
-                 const rvec      x[],
-                 rvec4           f[],
-                 rvec            fshift[],
-                 const t_pbc*    pbc,
-                 real gmx_unused lambda,
+real cubic_bonds(int              nbonds,
+                 const t_iatom    forceatoms[],
+                 const t_iparams  forceparams[],
+                 const rvec       x[],
+                 rvec4            f[],
+                 rvec             fshift[],
+                 const t_pbc*     pbc,
+                 real gmx_unused  lambda,
                  real gmx_unused* dvdlambda,
                  gmx::ArrayRef<const real> /*charge*/,
-                 t_fcdata gmx_unused* fcd,
+                 t_fcdata gmx_unused*     fcd,
                  t_disresdata gmx_unused* disresdata,
                  t_oriresdata gmx_unused* oriresdata,
-                 int gmx_unused* global_atom_index)
+                 int gmx_unused*          global_atom_index)
 {
     const real three = 3.0;
     const real two   = 2.0;
@@ -366,22 +366,22 @@ real cubic_bonds(int             nbonds,
         vtot += vbond; /* 21 */
 
         spreadBondForces<flavor>(fbond, dx, ai, aj, f, ki, fshift); /* 15 */
-    }                                                               /*  54 TOTAL    */
+    } /*  54 TOTAL    */
     return vtot;
 }
 
 template<BondedKernelFlavor flavor>
-real FENE_bonds(int             nbonds,
-                const t_iatom   forceatoms[],
-                const t_iparams forceparams[],
-                const rvec      x[],
-                rvec4           f[],
-                rvec            fshift[],
-                const t_pbc*    pbc,
-                real gmx_unused lambda,
+real FENE_bonds(int              nbonds,
+                const t_iatom    forceatoms[],
+                const t_iparams  forceparams[],
+                const rvec       x[],
+                rvec4            f[],
+                rvec             fshift[],
+                const t_pbc*     pbc,
+                real gmx_unused  lambda,
                 real gmx_unused* dvdlambda,
                 gmx::ArrayRef<const real> /*charge*/,
-                t_fcdata gmx_unused* fcd,
+                t_fcdata gmx_unused*     fcd,
                 t_disresdata gmx_unused* disresdata,
                 t_oriresdata gmx_unused* oriresdata,
                 int*                     global_atom_index)
@@ -431,7 +431,7 @@ real FENE_bonds(int             nbonds,
         vtot += vbond; /* 35 */
 
         spreadBondForces<flavor>(fbond, dx, ai, aj, f, ki, fshift); /* 15 */
-    }                                                               /*  58 TOTAL    */
+    } /*  58 TOTAL    */
     return vtot;
 }
 
@@ -472,10 +472,10 @@ bonds(int             nbonds,
       real            lambda,
       real*           dvdlambda,
       gmx::ArrayRef<const real> /*charge*/,
-      t_fcdata gmx_unused* fcd,
+      t_fcdata gmx_unused*     fcd,
       t_disresdata gmx_unused* disresdata,
       t_oriresdata gmx_unused* oriresdata,
-      int gmx_unused* global_atom_index)
+      int gmx_unused*          global_atom_index)
 {
     int  i, ki, ai, aj, type;
     real dr, dr2, fbond, vbond, vtot;
@@ -511,7 +511,7 @@ bonds(int             nbonds,
         fbond *= gmx::invsqrt(dr2); /*   6		*/
 
         spreadBondForces<flavor>(fbond, dx, ai, aj, f, ki, fshift); /* 15 */
-    }                                                               /* 59 TOTAL	*/
+    } /* 59 TOTAL	*/
     return vtot;
 }
 
@@ -524,20 +524,20 @@ bonds(int             nbonds,
  */
 template<BondedKernelFlavor flavor>
 std::enable_if_t<flavor == BondedKernelFlavor::ForcesSimdWhenAvailable, real>
-bonds(int             nbonds,
-      const t_iatom   forceatoms[],
-      const t_iparams forceparams[],
-      const rvec      x[],
-      rvec4           f[],
-      rvec gmx_unused fshift[],
-      const t_pbc*    pbc,
-      real gmx_unused lambda,
+bonds(int              nbonds,
+      const t_iatom    forceatoms[],
+      const t_iparams  forceparams[],
+      const rvec       x[],
+      rvec4            f[],
+      rvec gmx_unused  fshift[],
+      const t_pbc*     pbc,
+      real gmx_unused  lambda,
       real gmx_unused* dvdlambda,
       gmx::ArrayRef<const real> /*charge*/,
-      t_fcdata gmx_unused* fcd,
+      t_fcdata gmx_unused*     fcd,
       t_disresdata gmx_unused* disresdata,
       t_oriresdata gmx_unused* oriresdata,
-      int gmx_unused* global_atom_index)
+      int gmx_unused*          global_atom_index)
 {
     constexpr int                            nfa1 = 3;
     alignas(GMX_SIMD_ALIGNMENT) std::int32_t ai[GMX_SIMD_REAL_WIDTH];
@@ -626,10 +626,10 @@ real restraint_bonds(int             nbonds,
                      real            lambda,
                      real*           dvdlambda,
                      gmx::ArrayRef<const real> /*charge*/,
-                     t_fcdata gmx_unused* fcd,
+                     t_fcdata gmx_unused*     fcd,
                      t_disresdata gmx_unused* disresdata,
                      t_oriresdata gmx_unused* oriresdata,
-                     int gmx_unused* global_atom_index)
+                     int gmx_unused*          global_atom_index)
 {
     int  i, ki, ai, aj, type;
     real dr, dr2, fbond, vbond, vtot;
@@ -700,7 +700,7 @@ real restraint_bonds(int             nbonds,
         fbond *= gmx::invsqrt(dr2); /*   6		*/
 
         spreadBondForces<flavor>(fbond, dx, ai, aj, f, ki, fshift); /* 15 */
-    }                                                               /* 59 TOTAL	*/
+    } /* 59 TOTAL	*/
 
     return vtot;
 }
@@ -716,10 +716,10 @@ real polarize(int                       nbonds,
               real                      lambda,
               real*                     dvdlambda,
               gmx::ArrayRef<const real> charge,
-              t_fcdata gmx_unused* fcd,
-              t_disresdata gmx_unused* disresdata,
-              t_oriresdata gmx_unused* oriresdata,
-              int gmx_unused* global_atom_index)
+              t_fcdata gmx_unused*      fcd,
+              t_disresdata gmx_unused*  disresdata,
+              t_oriresdata gmx_unused*  oriresdata,
+              int gmx_unused*           global_atom_index)
 {
     int  i, ki, ai, aj, type;
     real dr, dr2, fbond, vbond, vtot, ksh;
@@ -748,7 +748,7 @@ real polarize(int                       nbonds,
         fbond *= gmx::invsqrt(dr2); /*   6		*/
 
         spreadBondForces<flavor>(fbond, dx, ai, aj, f, ki, fshift); /* 15 */
-    }                                                               /* 59 TOTAL	*/
+    } /* 59 TOTAL	*/
     return vtot;
 }
 
@@ -763,10 +763,10 @@ real anharm_polarize(int                       nbonds,
                      real                      lambda,
                      real*                     dvdlambda,
                      gmx::ArrayRef<const real> charge,
-                     t_fcdata gmx_unused* fcd,
-                     t_disresdata gmx_unused* disresdata,
-                     t_oriresdata gmx_unused* oriresdata,
-                     int gmx_unused* global_atom_index)
+                     t_fcdata gmx_unused*      fcd,
+                     t_disresdata gmx_unused*  disresdata,
+                     t_oriresdata gmx_unused*  oriresdata,
+                     int gmx_unused*           global_atom_index)
 {
     int  i, ki, ai, aj, type;
     real dr, dr2, fbond, vbond, vtot, ksh, khyp, drcut, ddr, ddr3;
@@ -804,25 +804,25 @@ real anharm_polarize(int                       nbonds,
         vtot += vbond;              /* 1*/
 
         spreadBondForces<flavor>(fbond, dx, ai, aj, f, ki, fshift); /* 15 */
-    }                                                               /* 72 TOTAL	*/
+    } /* 72 TOTAL	*/
     return vtot;
 }
 
 template<BondedKernelFlavor flavor>
-real water_pol(int             nbonds,
-               const t_iatom   forceatoms[],
-               const t_iparams forceparams[],
-               const rvec      x[],
-               rvec4           f[],
-               rvec gmx_unused fshift[],
-               const t_pbc gmx_unused* pbc,
-               real gmx_unused         lambda,
+real water_pol(int                       nbonds,
+               const t_iatom             forceatoms[],
+               const t_iparams           forceparams[],
+               const rvec                x[],
+               rvec4                     f[],
+               rvec gmx_unused           fshift[],
+               const t_pbc gmx_unused*   pbc,
+               real gmx_unused           lambda,
                real gmx_unused*          dvdlambda,
                gmx::ArrayRef<const real> charge,
-               t_fcdata gmx_unused* fcd,
-               t_disresdata gmx_unused* disresdata,
-               t_oriresdata gmx_unused* oriresdata,
-               int gmx_unused* global_atom_index)
+               t_fcdata gmx_unused*      fcd,
+               t_disresdata gmx_unused*  disresdata,
+               t_oriresdata gmx_unused*  oriresdata,
+               int gmx_unused*           global_atom_index)
 {
     /* This routine implements anisotropic polarizibility for water, through
      * a shell connected to a dummy with spring constant that differ in the
@@ -954,20 +954,20 @@ do_1_thole(const rvec xi, const rvec xj, rvec fi, rvec fj, const t_pbc* pbc, rea
 }
 
 template<BondedKernelFlavor flavor>
-real thole_pol(int             nbonds,
-               const t_iatom   forceatoms[],
-               const t_iparams forceparams[],
-               const rvec      x[],
-               rvec4           f[],
-               rvec            fshift[],
-               const t_pbc*    pbc,
-               real gmx_unused lambda,
+real thole_pol(int                       nbonds,
+               const t_iatom             forceatoms[],
+               const t_iparams           forceparams[],
+               const rvec                x[],
+               rvec4                     f[],
+               rvec                      fshift[],
+               const t_pbc*              pbc,
+               real gmx_unused           lambda,
                real gmx_unused*          dvdlambda,
                gmx::ArrayRef<const real> charge,
-               t_fcdata gmx_unused* fcd,
-               t_disresdata gmx_unused* disresdata,
-               t_oriresdata gmx_unused* oriresdata,
-               int gmx_unused* global_atom_index)
+               t_fcdata gmx_unused*      fcd,
+               t_disresdata gmx_unused*  disresdata,
+               t_oriresdata gmx_unused*  oriresdata,
+               int gmx_unused*           global_atom_index)
 {
     /* Interaction between two pairs of particles with opposite charge */
     int  i, type, a1, da1, a2, da2;
@@ -1017,10 +1017,10 @@ angles(int             nbonds,
        real            lambda,
        real*           dvdlambda,
        gmx::ArrayRef<const real> /*charge*/,
-       t_fcdata gmx_unused* fcd,
+       t_fcdata gmx_unused*     fcd,
        t_disresdata gmx_unused* disresdata,
        t_oriresdata gmx_unused* oriresdata,
-       int gmx_unused* global_atom_index)
+       int gmx_unused*          global_atom_index)
 {
     int  i, ai, aj, ak, t1, t2, type;
     rvec r_ij, r_kj;
@@ -1101,20 +1101,20 @@ angles(int             nbonds,
  */
 template<BondedKernelFlavor flavor>
 std::enable_if_t<flavor == BondedKernelFlavor::ForcesSimdWhenAvailable, real>
-angles(int             nbonds,
-       const t_iatom   forceatoms[],
-       const t_iparams forceparams[],
-       const rvec      x[],
-       rvec4           f[],
-       rvec gmx_unused fshift[],
-       const t_pbc*    pbc,
-       real gmx_unused lambda,
+angles(int              nbonds,
+       const t_iatom    forceatoms[],
+       const t_iparams  forceparams[],
+       const rvec       x[],
+       rvec4            f[],
+       rvec gmx_unused  fshift[],
+       const t_pbc*     pbc,
+       real gmx_unused  lambda,
        real gmx_unused* dvdlambda,
        gmx::ArrayRef<const real> /*charge*/,
-       t_fcdata gmx_unused* fcd,
+       t_fcdata gmx_unused*     fcd,
        t_disresdata gmx_unused* disresdata,
        t_oriresdata gmx_unused* oriresdata,
-       int gmx_unused* global_atom_index)
+       int gmx_unused*          global_atom_index)
 {
     const int                                nfa1 = 4;
     int                                      i, iu, s;
@@ -1271,10 +1271,10 @@ real linear_angles(int             nbonds,
                    real            lambda,
                    real*           dvdlambda,
                    gmx::ArrayRef<const real> /*charge*/,
-                   t_fcdata gmx_unused* fcd,
+                   t_fcdata gmx_unused*     fcd,
                    t_disresdata gmx_unused* disresdata,
                    t_oriresdata gmx_unused* oriresdata,
-                   int gmx_unused* global_atom_index)
+                   int gmx_unused*          global_atom_index)
 {
     int  i, m, ai, aj, ak, t1, t2, type;
     rvec f_i, f_j, f_k;
@@ -1343,10 +1343,10 @@ urey_bradley(int             nbonds,
              real            lambda,
              real*           dvdlambda,
              gmx::ArrayRef<const real> /*charge*/,
-             t_fcdata gmx_unused* fcd,
+             t_fcdata gmx_unused*     fcd,
              t_disresdata gmx_unused* disresdata,
              t_oriresdata gmx_unused* oriresdata,
-             int gmx_unused* global_atom_index)
+             int gmx_unused*          global_atom_index)
 {
     int  i, m, ai, aj, ak, t1, t2, type, ki;
     rvec r_ij, r_kj, r_ik;
@@ -1445,20 +1445,20 @@ urey_bradley(int             nbonds,
  */
 template<BondedKernelFlavor flavor>
 std::enable_if_t<flavor == BondedKernelFlavor::ForcesSimdWhenAvailable, real>
-urey_bradley(int             nbonds,
-             const t_iatom   forceatoms[],
-             const t_iparams forceparams[],
-             const rvec      x[],
-             rvec4           f[],
-             rvec gmx_unused fshift[],
-             const t_pbc*    pbc,
-             real gmx_unused lambda,
+urey_bradley(int              nbonds,
+             const t_iatom    forceatoms[],
+             const t_iparams  forceparams[],
+             const rvec       x[],
+             rvec4            f[],
+             rvec gmx_unused  fshift[],
+             const t_pbc*     pbc,
+             real gmx_unused  lambda,
              real gmx_unused* dvdlambda,
              gmx::ArrayRef<const real> /*charge*/,
-             t_fcdata gmx_unused* fcd,
+             t_fcdata gmx_unused*     fcd,
              t_disresdata gmx_unused* disresdata,
              t_oriresdata gmx_unused* oriresdata,
-             int gmx_unused* global_atom_index)
+             int gmx_unused*          global_atom_index)
 {
     constexpr int                            nfa1 = 4;
     alignas(GMX_SIMD_ALIGNMENT) std::int32_t ai[GMX_SIMD_REAL_WIDTH];
@@ -1589,20 +1589,20 @@ urey_bradley(int             nbonds,
 #endif // GMX_SIMD_HAVE_REAL
 
 template<BondedKernelFlavor flavor>
-real quartic_angles(int             nbonds,
-                    const t_iatom   forceatoms[],
-                    const t_iparams forceparams[],
-                    const rvec      x[],
-                    rvec4           f[],
-                    rvec            fshift[],
-                    const t_pbc*    pbc,
-                    real gmx_unused lambda,
+real quartic_angles(int              nbonds,
+                    const t_iatom    forceatoms[],
+                    const t_iparams  forceparams[],
+                    const rvec       x[],
+                    rvec4            f[],
+                    rvec             fshift[],
+                    const t_pbc*     pbc,
+                    real gmx_unused  lambda,
                     real gmx_unused* dvdlambda,
                     gmx::ArrayRef<const real> /*charge*/,
-                    t_fcdata gmx_unused* fcd,
+                    t_fcdata gmx_unused*     fcd,
                     t_disresdata gmx_unused* disresdata,
                     t_oriresdata gmx_unused* oriresdata,
-                    int gmx_unused* global_atom_index)
+                    int gmx_unused*          global_atom_index)
 {
     int  i, j, ai, aj, ak, t1, t2, type;
     rvec r_ij, r_kj;
@@ -1966,10 +1966,10 @@ pdihs(int             nbonds,
       real            lambda,
       real*           dvdlambda,
       gmx::ArrayRef<const real> /*charge*/,
-      t_fcdata gmx_unused* fcd,
+      t_fcdata gmx_unused*     fcd,
       t_disresdata gmx_unused* disresdata,
       t_oriresdata gmx_unused* oriresdata,
-      int gmx_unused* global_atom_index)
+      int gmx_unused*          global_atom_index)
 {
     int  t1, t2, t3;
     rvec r_ij, r_kj, r_kl, m, n;
@@ -2019,20 +2019,20 @@ pdihs(int             nbonds,
 /* As pdihs above, but using SIMD to calculate multiple dihedrals at once */
 template<BondedKernelFlavor flavor>
 std::enable_if_t<flavor == BondedKernelFlavor::ForcesSimdWhenAvailable, real>
-pdihs(int             nbonds,
-      const t_iatom   forceatoms[],
-      const t_iparams forceparams[],
-      const rvec      x[],
-      rvec4           f[],
-      rvec gmx_unused fshift[],
-      const t_pbc*    pbc,
-      real gmx_unused lambda,
+pdihs(int              nbonds,
+      const t_iatom    forceatoms[],
+      const t_iparams  forceparams[],
+      const rvec       x[],
+      rvec4            f[],
+      rvec gmx_unused  fshift[],
+      const t_pbc*     pbc,
+      real gmx_unused  lambda,
       real gmx_unused* dvdlambda,
       gmx::ArrayRef<const real> /*charge*/,
-      t_fcdata gmx_unused* fcd,
+      t_fcdata gmx_unused*     fcd,
       t_disresdata gmx_unused* disresdata,
       t_oriresdata gmx_unused* oriresdata,
-      int gmx_unused* global_atom_index)
+      int gmx_unused*          global_atom_index)
 {
     const int                                nfa1 = 5;
     int                                      i, iu, s;
@@ -2135,20 +2135,20 @@ pdihs(int             nbonds,
  */
 template<BondedKernelFlavor flavor>
 std::enable_if_t<flavor == BondedKernelFlavor::ForcesSimdWhenAvailable, real>
-rbdihs(int             nbonds,
-       const t_iatom   forceatoms[],
-       const t_iparams forceparams[],
-       const rvec      x[],
-       rvec4           f[],
-       rvec gmx_unused fshift[],
-       const t_pbc*    pbc,
-       real gmx_unused lambda,
+rbdihs(int              nbonds,
+       const t_iatom    forceatoms[],
+       const t_iparams  forceparams[],
+       const rvec       x[],
+       rvec4            f[],
+       rvec gmx_unused  fshift[],
+       const t_pbc*     pbc,
+       real gmx_unused  lambda,
        real gmx_unused* dvdlambda,
        gmx::ArrayRef<const real> /*charge*/,
-       t_fcdata gmx_unused* fcd,
+       t_fcdata gmx_unused*     fcd,
        t_disresdata gmx_unused* disresdata,
        t_oriresdata gmx_unused* oriresdata,
-       int gmx_unused* global_atom_index)
+       int gmx_unused*          global_atom_index)
 {
     const int                                nfa1 = 5;
     int                                      i, iu, s, j;
@@ -2273,10 +2273,10 @@ real idihs(int             nbonds,
            real            lambda,
            real*           dvdlambda,
            gmx::ArrayRef<const real> /*charge*/,
-           t_fcdata gmx_unused* fcd,
+           t_fcdata gmx_unused*     fcd,
            t_disresdata gmx_unused* disresdata,
            t_oriresdata gmx_unused* oriresdata,
-           int gmx_unused* global_atom_index)
+           int gmx_unused*          global_atom_index)
 {
     int  i, type, ai, aj, ak, al;
     int  t1, t2, t3;
@@ -2441,10 +2441,10 @@ real angres(int             nbonds,
             real            lambda,
             real*           dvdlambda,
             gmx::ArrayRef<const real> /*charge*/,
-            t_fcdata gmx_unused* fcd,
+            t_fcdata gmx_unused*     fcd,
             t_disresdata gmx_unused* disresdata,
             t_oriresdata gmx_unused* oriresdata,
-            int gmx_unused* global_atom_index)
+            int gmx_unused*          global_atom_index)
 {
     return low_angres<flavor>(nbonds, forceatoms, forceparams, x, f, fshift, pbc, lambda, dvdlambda, FALSE);
 }
@@ -2460,10 +2460,10 @@ real angresz(int             nbonds,
              real            lambda,
              real*           dvdlambda,
              gmx::ArrayRef<const real> /*charge*/,
-             t_fcdata gmx_unused* fcd,
+             t_fcdata gmx_unused*     fcd,
              t_disresdata gmx_unused* disresdata,
              t_oriresdata gmx_unused* oriresdata,
-             int gmx_unused* global_atom_index)
+             int gmx_unused*          global_atom_index)
 {
     return low_angres<flavor>(nbonds, forceatoms, forceparams, x, f, fshift, pbc, lambda, dvdlambda, TRUE);
 }
@@ -2479,10 +2479,10 @@ real dihres(int             nbonds,
             real            lambda,
             real*           dvdlambda,
             gmx::ArrayRef<const real> /*charge*/,
-            t_fcdata gmx_unused* fcd,
+            t_fcdata gmx_unused*     fcd,
             t_disresdata gmx_unused* disresdata,
             t_oriresdata gmx_unused* oriresdata,
-            int gmx_unused* global_atom_index)
+            int gmx_unused*          global_atom_index)
 {
     real vtot = 0;
     int  ai, aj, ak, al, i, type, t1, t2, t3;
@@ -2570,33 +2570,33 @@ real unimplemented(int gmx_unused             nbonds,
                    const rvec gmx_unused      x[],
                    rvec4 gmx_unused           f[],
                    rvec gmx_unused            fshift[],
-                   const t_pbc gmx_unused* pbc,
-                   real gmx_unused         lambda,
-                   real gmx_unused* dvdlambda,
+                   const t_pbc gmx_unused*    pbc,
+                   real gmx_unused            lambda,
+                   real gmx_unused*           dvdlambda,
                    gmx::ArrayRef<const real> /*charge*/,
-                   t_fcdata gmx_unused* fcd,
+                   t_fcdata gmx_unused*     fcd,
                    t_disresdata gmx_unused* disresdata,
                    t_oriresdata gmx_unused* oriresdata,
-                   int gmx_unused* global_atom_index)
+                   int gmx_unused*          global_atom_index)
 {
     gmx_impl("*** you are using a not implemented function");
 }
 
 template<BondedKernelFlavor flavor>
-real restrangles(int             nbonds,
-                 const t_iatom   forceatoms[],
-                 const t_iparams forceparams[],
-                 const rvec      x[],
-                 rvec4           f[],
-                 rvec            fshift[],
-                 const t_pbc*    pbc,
-                 real gmx_unused lambda,
+real restrangles(int              nbonds,
+                 const t_iatom    forceatoms[],
+                 const t_iparams  forceparams[],
+                 const rvec       x[],
+                 rvec4            f[],
+                 rvec             fshift[],
+                 const t_pbc*     pbc,
+                 real gmx_unused  lambda,
                  real gmx_unused* dvdlambda,
                  gmx::ArrayRef<const real> /*charge*/,
-                 t_fcdata gmx_unused* fcd,
+                 t_fcdata gmx_unused*     fcd,
                  t_disresdata gmx_unused* disresdata,
                  t_oriresdata gmx_unused* oriresdata,
-                 int gmx_unused* global_atom_index)
+                 int gmx_unused*          global_atom_index)
 {
     int    i, d, ai, aj, ak, type, m;
     int    t1, t2;
@@ -2687,20 +2687,20 @@ real restrangles(int             nbonds,
 
 
 template<BondedKernelFlavor flavor>
-real restrdihs(int             nbonds,
-               const t_iatom   forceatoms[],
-               const t_iparams forceparams[],
-               const rvec      x[],
-               rvec4           f[],
-               rvec            fshift[],
-               const t_pbc*    pbc,
-               real gmx_unused lambda,
+real restrdihs(int              nbonds,
+               const t_iatom    forceatoms[],
+               const t_iparams  forceparams[],
+               const rvec       x[],
+               rvec4            f[],
+               rvec             fshift[],
+               const t_pbc*     pbc,
+               real gmx_unused  lambda,
                real gmx_unused* dvlambda,
                gmx::ArrayRef<const real> /*charge*/,
-               t_fcdata gmx_unused* fcd,
+               t_fcdata gmx_unused*     fcd,
                t_disresdata gmx_unused* disresdata,
                t_oriresdata gmx_unused* oriresdata,
-               int gmx_unused* global_atom_index)
+               int gmx_unused*          global_atom_index)
 {
     int  i, d, type, ai, aj, ak, al;
     rvec f_i, f_j, f_k, f_l;
@@ -2811,20 +2811,20 @@ real restrdihs(int             nbonds,
 
 
 template<BondedKernelFlavor flavor>
-real cbtdihs(int             nbonds,
-             const t_iatom   forceatoms[],
-             const t_iparams forceparams[],
-             const rvec      x[],
-             rvec4           f[],
-             rvec            fshift[],
-             const t_pbc*    pbc,
-             real gmx_unused lambda,
+real cbtdihs(int              nbonds,
+             const t_iatom    forceatoms[],
+             const t_iparams  forceparams[],
+             const rvec       x[],
+             rvec4            f[],
+             rvec             fshift[],
+             const t_pbc*     pbc,
+             real gmx_unused  lambda,
              real gmx_unused* dvdlambda,
              gmx::ArrayRef<const real> /*charge*/,
-             t_fcdata gmx_unused* fcd,
+             t_fcdata gmx_unused*     fcd,
              t_disresdata gmx_unused* disresdata,
              t_oriresdata gmx_unused* oriresdata,
-             int gmx_unused* global_atom_index)
+             int gmx_unused*          global_atom_index)
 {
     int  type, ai, aj, ak, al, i, d;
     int  t1, t2, t3;
@@ -2938,10 +2938,10 @@ rbdihs(int             nbonds,
        real            lambda,
        real*           dvdlambda,
        gmx::ArrayRef<const real> /*charge*/,
-       t_fcdata gmx_unused* fcd,
+       t_fcdata gmx_unused*     fcd,
        t_disresdata gmx_unused* disresdata,
        t_oriresdata gmx_unused* oriresdata,
-       int gmx_unused* global_atom_index)
+       int gmx_unused*          global_atom_index)
 {
     const real c0 = 0.0, c1 = 1.0, c2 = 2.0, c3 = 3.0, c4 = 4.0, c5 = 5.0;
     int        type, ai, aj, ak, al, i, j;
@@ -3173,12 +3173,12 @@ real cmap_dihs(int                 nbonds,
                rvec                fshift[],
                const struct t_pbc* pbc,
                real gmx_unused     lambda,
-               real gmx_unused* dvdlambda,
+               real gmx_unused*    dvdlambda,
                gmx::ArrayRef<const real> /*charge*/,
-               t_fcdata gmx_unused* fcd,
+               t_fcdata gmx_unused*     fcd,
                t_disresdata gmx_unused* disresdata,
                t_oriresdata gmx_unused* oriresdata,
-               int gmx_unused* global_atom_index)
+               int gmx_unused*          global_atom_index)
 {
     int t11, t21, t31, t12, t22, t32;
     int ip1m1, ip1p1, ip1p2;
@@ -3480,10 +3480,10 @@ real g96bonds(int             nbonds,
               real            lambda,
               real*           dvdlambda,
               gmx::ArrayRef<const real> /*charge*/,
-              t_fcdata gmx_unused* fcd,
+              t_fcdata gmx_unused*     fcd,
               t_disresdata gmx_unused* disresdata,
               t_oriresdata gmx_unused* oriresdata,
-              int gmx_unused* global_atom_index)
+              int gmx_unused*          global_atom_index)
 {
     int  i, ki, ai, aj, type;
     real dr2, fbond, vbond, vtot;
@@ -3511,7 +3511,7 @@ real g96bonds(int             nbonds,
         vtot += 0.5 * vbond; /* 1*/
 
         spreadBondForces<flavor>(fbond, dx, ai, aj, f, ki, fshift); /* 15 */
-    }                                                               /* 44 TOTAL	*/
+    } /* 44 TOTAL	*/
     return vtot;
 }
 
@@ -3539,10 +3539,10 @@ real g96angles(int             nbonds,
                real            lambda,
                real*           dvdlambda,
                gmx::ArrayRef<const real> /*charge*/,
-               t_fcdata gmx_unused* fcd,
+               t_fcdata gmx_unused*     fcd,
                t_disresdata gmx_unused* disresdata,
                t_oriresdata gmx_unused* oriresdata,
-               int gmx_unused* global_atom_index)
+               int gmx_unused*          global_atom_index)
 {
     int  i, ai, aj, ak, type, m, t1, t2;
     rvec r_ij, r_kj;
@@ -3598,20 +3598,20 @@ real g96angles(int             nbonds,
 }
 
 template<BondedKernelFlavor flavor>
-real cross_bond_bond(int             nbonds,
-                     const t_iatom   forceatoms[],
-                     const t_iparams forceparams[],
-                     const rvec      x[],
-                     rvec4           f[],
-                     rvec            fshift[],
-                     const t_pbc*    pbc,
-                     real gmx_unused lambda,
+real cross_bond_bond(int              nbonds,
+                     const t_iatom    forceatoms[],
+                     const t_iparams  forceparams[],
+                     const rvec       x[],
+                     rvec4            f[],
+                     rvec             fshift[],
+                     const t_pbc*     pbc,
+                     real gmx_unused  lambda,
                      real gmx_unused* dvdlambda,
                      gmx::ArrayRef<const real> /*charge*/,
-                     t_fcdata gmx_unused* fcd,
+                     t_fcdata gmx_unused*     fcd,
                      t_disresdata gmx_unused* disresdata,
                      t_oriresdata gmx_unused* oriresdata,
-                     int gmx_unused* global_atom_index)
+                     int gmx_unused*          global_atom_index)
 {
     /* Potential from Lawrence and Skimmer, Chem. Phys. Lett. 372 (2003)
      * pp. 842-847
@@ -3672,20 +3672,20 @@ real cross_bond_bond(int             nbonds,
 }
 
 template<BondedKernelFlavor flavor>
-real cross_bond_angle(int             nbonds,
-                      const t_iatom   forceatoms[],
-                      const t_iparams forceparams[],
-                      const rvec      x[],
-                      rvec4           f[],
-                      rvec            fshift[],
-                      const t_pbc*    pbc,
-                      real gmx_unused lambda,
+real cross_bond_angle(int              nbonds,
+                      const t_iatom    forceatoms[],
+                      const t_iparams  forceparams[],
+                      const rvec       x[],
+                      rvec4            f[],
+                      rvec             fshift[],
+                      const t_pbc*     pbc,
+                      real gmx_unused  lambda,
                       real gmx_unused* dvdlambda,
                       gmx::ArrayRef<const real> /*charge*/,
-                      t_fcdata gmx_unused* fcd,
+                      t_fcdata gmx_unused*     fcd,
                       t_disresdata gmx_unused* disresdata,
                       t_oriresdata gmx_unused* oriresdata,
-                      int gmx_unused* global_atom_index)
+                      int gmx_unused*          global_atom_index)
 {
     /* Potential from Lawrence and Skimmer, Chem. Phys. Lett. 372 (2003)
      * pp. 842-847
@@ -3820,10 +3820,10 @@ real tab_bonds(int             nbonds,
                real            lambda,
                real*           dvdlambda,
                gmx::ArrayRef<const real> /*charge*/,
-               t_fcdata*    fcd,
+               t_fcdata*                fcd,
                t_disresdata gmx_unused* disresdata,
                t_oriresdata gmx_unused* oriresdata,
-               int gmx_unused* global_atom_index)
+               int gmx_unused*          global_atom_index)
 {
     int  i, ki, ai, aj, type, table;
     real dr, dr2, fbond, vbond, vtot;
@@ -3862,7 +3862,7 @@ real tab_bonds(int             nbonds,
         fbond *= gmx::invsqrt(dr2); /*   6		*/
 
         spreadBondForces<flavor>(fbond, dx, ai, aj, f, ki, fshift); /* 15 */
-    }                                                               /* 62 TOTAL	*/
+    } /* 62 TOTAL	*/
     return vtot;
 }
 
@@ -3877,10 +3877,10 @@ real tab_angles(int             nbonds,
                 real            lambda,
                 real*           dvdlambda,
                 gmx::ArrayRef<const real> /*charge*/,
-                t_fcdata*    fcd,
+                t_fcdata*                fcd,
                 t_disresdata gmx_unused* disresdata,
                 t_oriresdata gmx_unused* oriresdata,
-                int gmx_unused* global_atom_index)
+                int gmx_unused*          global_atom_index)
 {
     int  i, ai, aj, ak, t1, t2, type, table;
     rvec r_ij, r_kj;
@@ -3959,10 +3959,10 @@ real tab_dihs(int             nbonds,
               real            lambda,
               real*           dvdlambda,
               gmx::ArrayRef<const real> /*charge*/,
-              t_fcdata*    fcd,
+              t_fcdata*                fcd,
               t_disresdata gmx_unused* disresdata,
               t_oriresdata gmx_unused* oriresdata,
-              int gmx_unused* global_atom_index)
+              int gmx_unused*          global_atom_index)
 {
     int  i, type, ai, aj, ak, al, table;
     int  t1, t2, t3;
@@ -4132,8 +4132,8 @@ real calculateSimpleBond(const int                 ftype,
                          t_fcdata*                 fcd,
                          t_disresdata*             disresdata,
                          t_oriresdata*             oriresdata,
-                         int gmx_unused*          global_atom_index,
-                         const BondedKernelFlavor bondedKernelFlavor)
+                         int gmx_unused*           global_atom_index,
+                         const BondedKernelFlavor  bondedKernelFlavor)
 {
     const BondedInteractions& bonded = c_bondedInteractionFunctionsPerFlavor[bondedKernelFlavor][ftype];
 

@@ -126,7 +126,7 @@ struct BondedGpuKernelBuffers
     DeviceBuffer<t_iparams> d_forceParams = nullptr;
     //! Total Energy (on GPU)
     DeviceBuffer<float> d_vTot = nullptr;
-    //! Total DhDl (on GPU)
+    //! Total DvDl (on GPU)
     DeviceBuffer<float> d_dvdlTot = nullptr;
     //! Interaction list atoms (on GPU)
     DeviceBuffer<t_iatom> d_iatoms[numFTypesOnGpu];
@@ -171,18 +171,17 @@ public:
                                                 DeviceBuffer<RVec>            d_fPtr,
                                                 DeviceBuffer<RVec>            d_fShiftPtr);
     /*! \brief Update FEP params for the GPU. */
-    void updateFepValuesAndDeviceBuffers(DeviceBuffer<Float4>       q4Device,
-                                         //DeviceBuffer<float>       qBDevice,
-                                         const bool  bFEP,
-                                         const float alphaCoul,
-                                         const float alphaVdw,
-                                         const float sc_sigma6_def,
-                                         const float sc_sigma6_min,
-                                         const float lambdaBonded,
-                                         const float lambdaCoul,
-                                         const float lambdaVdw,
-                                         const float lambdaRestr,
-                                         const float lambdaPower);
+    void updateFepValuesAndDeviceBuffers(DeviceBuffer<Float4> q4Device,
+                                         const bool           bFEP,
+                                         const float          alphaCoul,
+                                         const float          alphaVdw,
+                                         const float          sc_sigma6_def,
+                                         const float          sc_sigma6_min,
+                                         const float          lambdaBonded,
+                                         const float          lambdaCoul,
+                                         const float          lambdaVdw,
+                                         const float          lambdaRestr,
+                                         const float          lambdaPower);
 
     /*! \brief
      * Update PBC data.
@@ -235,9 +234,9 @@ private:
     HostVector<float> vTot_ = { {}, gmx::HostAllocationPolicy(gmx::PinningPolicy::PinnedIfSupported) };
     //! \brief Device-side total virial
     DeviceBuffer<float> d_vTot_ = nullptr;
-    //! \brief Host-side dhdl buffer
+    //! \brief Host-side dvdl buffer
     HostVector<float> dvdlTot_ = { {}, gmx::HostAllocationPolicy(gmx::PinningPolicy::PinnedIfSupported) };
-    //! \brief Device-side total dhdl
+    //! \brief Device-side total dvdl
     DeviceBuffer<float> d_dvdlTot_ = nullptr;
 
 

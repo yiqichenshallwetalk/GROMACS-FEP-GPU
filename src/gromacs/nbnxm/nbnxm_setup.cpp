@@ -35,7 +35,6 @@
  * \brief Common functions for the different NBNXN GPU implementations.
  *
  * \author Berk Hess <hess@kth.se>
- * \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  *
  * \ingroup module_nbnxm
  */
@@ -470,7 +469,6 @@ std::unique_ptr<nonbonded_verlet_t> init_nb_verlet(const gmx::MDLogger& mdlog,
             gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, std::vector<double>> all_lambda = inputrec.fepvals->all_lambda;
 
             const int state = inputrec.fepvals->init_fep_state;
-            //printf("Init-lambda-state: %d \n", state);
             if (state >= 0) {
             lambda_q = all_lambda[FreeEnergyPerturbationCouplingType::Coul][state];
             lambda_v = all_lambda[FreeEnergyPerturbationCouplingType::Vdw][state];
@@ -479,7 +477,7 @@ std::unique_ptr<nonbonded_verlet_t> init_nb_verlet(const gmx::MDLogger& mdlog,
                 lambda_q = inputrec.fepvals->init_lambda;
                 lambda_v = inputrec.fepvals->init_lambda;
             }
-
+            // Cpoy FEP parameters to GPU
             cuda_copy_fepparams(gpu_nbv, pairlistParams.haveFep,
                            forcerec.ic->softCoreParameters->alphaCoulomb, forcerec.ic->softCoreParameters->alphaVdw,
                            forcerec.ic->softCoreParameters->lambdaPower,

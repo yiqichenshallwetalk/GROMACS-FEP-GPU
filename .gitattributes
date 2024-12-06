@@ -1,0 +1,65 @@
+# Generic rules
+*.c     filter=complete_formatting gmx-doxygen
+*.cpp   filter=complete_formatting gmx-doxygen
+*.hpp   filter=complete_formatting gmx-doxygen
+*.cu    filter=complete_formatting
+*.cl    filter=complete_formatting
+*.h     filter=complete_formatting gmx-doxygen
+*.cuh   filter=complete_formatting
+*.clh   filter=complete_formatting
+CMakeLists.txt  filter=copyright
+*.cmake         filter=copyright
+*.cmakein       filter=copyright
+*.py            filter=copyright
+*.l             filter=copyright includesort
+*.y             filter=copyright includesort
+*.pre           filter=copyright includesort
+*.tex           filter=copyright
+*.bm            filter=copyright
+# Exceptions: extra files to include
+admin/*.sh                              filter=copyright
+admin/git-pre-commit                    filter=copyright
+# Exceptions: files to exclude
+*.pc.cmakein                            !filter
+api/docs/Doxyfile*                      -filter -copyright
+cmake/CheckC*CompilerFlag.cmake         !filter
+cmake/FindBLAS.cmake                    !filter
+cmake/FindLAPACK.cmake                  !filter
+cmake/ThreadMPI.cmake                   !filter
+cmake/*.c                               -filter -gmx-doxygen
+cmake/*.cpp                             -filter -gmx-doxygen
+cmake/*.c.cmakein                       !filter
+cmake/*.h                               !filter
+cmake/*.cu                              !filter
+cmake/*.cuh                             !filter
+docs/doxygen/Doxyfile-*.cmakein         !filter
+docs/doxygen/*.cpp                      !filter
+docs/doxygen/examples/*.cpp             filter=clangformat
+docs/doxygen/examples/*.c               filter=clangformat
+docs/manual/UseLATEX.cmake              !filter
+scripts/GMXRC.*                         !filter
+share/template/template.cpp             filter=copyright
+share/template/README.cmakein           !filter
+src/gromacs/linearalgebra/gmx_blas/*    -filter -gmx-doxygen
+src/gromacs/linearalgebra/gmx_lapack/*  -filter -gmx-doxygen
+src/gromacs/selection/parser.cpp        -filter -gmx-doxygen
+src/gromacs/selection/parser.h          -filter -gmx-doxygen
+src/gromacs/selection/scanner.cpp       -filter -gmx-doxygen
+src/gromacs/selection/scanner_flex.h    -filter
+*.eps                                   binary
+*.jpg                                   binary
+*.svg                                   binary
+*.png                                   binary
+*.pdf                                   binary
+*.ogl                                   binary
+*.gif                                   binary
+*.jpg                                   binary
+*.tpr                                   binary
+*.trr                                   binary
+*.tng                                   binary
+*.xtc                                   binary
+*.edr                                   binary
+*.cpt                                   binary
+# Merge release-notes with merge=union to resolve conflicts
+docs/release-notes/*/*.rst              merge=union
+docs/release-notes/*/*/*.rst            merge=union

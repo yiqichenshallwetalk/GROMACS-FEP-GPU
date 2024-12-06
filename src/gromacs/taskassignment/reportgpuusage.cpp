@@ -35,7 +35,6 @@
  * \brief Defines routine for reporting GPU usage.
  *
  * \author Mark Abraham <mark.j.abraham@gmail.com>
- * \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  * \ingroup module_taskassignment
  */
 #include "gmxpre.h"

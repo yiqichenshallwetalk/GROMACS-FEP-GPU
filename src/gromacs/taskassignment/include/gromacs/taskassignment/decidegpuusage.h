@@ -266,7 +266,7 @@ bool decideWhetherToUseGpusForBonded(bool              useGpuForNonbonded,
 /*! \brief Decide whether the simulation will try to run fep tasks on GPUs.
  *
  * \param[in]  useGpuForNonbonded        Whether GPUs will be used for nonbonded interactions.
- * \param[in]  fepTarget              The user's choice for mdrun -fep for where to assign tasks.
+ * \param[in]  fepTarget                 The user's choice for mdrun -fep for where to assign tasks.
  *
  * \returns    Whether the simulation will run fep tasks on GPUs.
  *

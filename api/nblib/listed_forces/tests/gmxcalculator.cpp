@@ -86,6 +86,7 @@ ListedGmxCalculator::ListedGmxCalculator(const ListedInteractionData& interactio
 
     gmxListedForces_ =
             std::make_unique<ListedForces>(*ffparams, 1, numThreads, interactionSelection, nullptr);
+    // setup(const InteractionDefinitions& domainIdef, const int numAtomsForce, const bool useGpu, const bool useGpuFep)
     gmxListedForces_->setup(*idef, nP, false, false);
 
     wcycle = wallcycle_init(nullptr, 0, &cr);

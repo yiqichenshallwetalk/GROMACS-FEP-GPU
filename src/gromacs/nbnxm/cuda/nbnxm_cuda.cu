@@ -35,140 +35,139 @@
  *  \brief Define CUDA implementation of nbnxn_gpu.h
  *
  *  \author Szilard Pall <pall.szilard@gmail.com>
- *  \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  */
- #include "gmxpre.h"
+#include "gmxpre.h"
 
- #include "config.h"
+#include "config.h"
 
- #include <cassert>
- #include <cstdlib>
- #include <fstream>
- #include <iostream>
- #include "gromacs/nbnxm/nbnxm_gpu.h"
+#include <cassert>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include "gromacs/nbnxm/nbnxm_gpu.h"
 
- #if defined(_MSVC)
- #    include <limits>
- #endif
+#if defined(_MSVC)
+#    include <limits>
+#endif
 
 
- #include "gromacs/gpu_utils/devicebuffer.h"
- #include "gromacs/gpu_utils/gpu_utils.h"
- #include "gromacs/gpu_utils/gpueventsynchronizer.h"
- #include "gromacs/gpu_utils/typecasts.cuh"
- #include "gromacs/gpu_utils/vectype_ops.cuh"
- #include "gromacs/hardware/device_information.h"
- #include "gromacs/mdtypes/simulation_workload.h"
- #include "gromacs/nbnxm/atomdata.h"
- #include "gromacs/nbnxm/gpu_common.h"
- #include "gromacs/nbnxm/gpu_common_utils.h"
- #include "gromacs/nbnxm/gpu_data_mgmt.h"
- #include "gromacs/nbnxm/grid.h"
- #include "gromacs/nbnxm/nbnxm.h"
- #include "gromacs/nbnxm/pairlist.h"
- #include "gromacs/timing/gpu_timing.h"
- #include "gromacs/utility/cstringutil.h"
- #include "gromacs/utility/gmxassert.h"
+#include "gromacs/gpu_utils/devicebuffer.h"
+#include "gromacs/gpu_utils/gpu_utils.h"
+#include "gromacs/gpu_utils/gpueventsynchronizer.h"
+#include "gromacs/gpu_utils/typecasts.cuh"
+#include "gromacs/gpu_utils/vectype_ops.cuh"
+#include "gromacs/hardware/device_information.h"
+#include "gromacs/mdtypes/simulation_workload.h"
+#include "gromacs/nbnxm/atomdata.h"
+#include "gromacs/nbnxm/gpu_common.h"
+#include "gromacs/nbnxm/gpu_common_utils.h"
+#include "gromacs/nbnxm/gpu_data_mgmt.h"
+#include "gromacs/nbnxm/grid.h"
+#include "gromacs/nbnxm/nbnxm.h"
+#include "gromacs/nbnxm/pairlist.h"
+#include "gromacs/timing/gpu_timing.h"
+#include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/gmxassert.h"
 
- #include "nbnxm_cuda.h"
- #include "nbnxm_cuda_types.h"
+#include "nbnxm_cuda.h"
+#include "nbnxm_cuda_types.h"
 
- /***** The kernel declarations/definitions come here *****/
+/***** The kernel declarations/definitions come here *****/
 
- /* Top-level kernel declaration generation: will generate through multiple
-  * inclusion the following flavors for all kernel declarations:
-  * - force-only output;
-  * - force and energy output;
-  * - force-only with pair list pruning;
-  * - force and energy output with pair list pruning.
-  */
- #define FUNCTION_DECLARATION_ONLY
- /** Force only **/
- #include "nbnxm_cuda_kernels.cuh"
- /** Force & energy **/
- #define CALC_ENERGIES
- #include "nbnxm_cuda_kernels.cuh"
- #undef CALC_ENERGIES
+/* Top-level kernel declaration generation: will generate through multiple
+ * inclusion the following flavors for all kernel declarations:
+ * - force-only output;
+ * - force and energy output;
+ * - force-only with pair list pruning;
+ * - force and energy output with pair list pruning.
+ */
+#define FUNCTION_DECLARATION_ONLY
+/** Force only **/
+#include "nbnxm_cuda_kernels.cuh"
+/** Force & energy **/
+#define CALC_ENERGIES
+#include "nbnxm_cuda_kernels.cuh"
+#undef CALC_ENERGIES
 
- // FEP kernels
- /** Force only **/
- #include "nbnxm_fep_cuda_kernels.cuh"
- /** Force & energy **/
- #define CALC_ENERGIES
- #include "nbnxm_fep_cuda_kernels.cuh"
- #undef CALC_ENERGIES
- /** Foreign Lambdas **/
- #define FOREIGN_LAMBDA
- #define CALC_ENERGIES
- #include "nbnxm_fep_cuda_kernels.cuh"
- #undef CALC_ENERGIES
- #undef FOREIGN_LAMBDA
+// FEP kernels
+/** Force only **/
+#include "nbnxm_fep_cuda_kernels.cuh"
+/** Force & energy **/
+#define CALC_ENERGIES
+#include "nbnxm_fep_cuda_kernels.cuh"
+#undef CALC_ENERGIES
+/** Foreign Lambdas **/
+#define FOREIGN_LAMBDA
+#define CALC_ENERGIES
+#include "nbnxm_fep_cuda_kernels.cuh"
+#undef CALC_ENERGIES
+#undef FOREIGN_LAMBDA
 
- #include "nbnxm_foreign_fep_cuda_kernels.cuh"
+#include "nbnxm_foreign_fep_cuda_kernels.cuh"
 
- /*** Pair-list pruning kernels ***/
- /** Force only **/
- #define PRUNE_NBL
- #include "nbnxm_cuda_kernels.cuh"
- /** Force & energy **/
- #define CALC_ENERGIES
- #include "nbnxm_cuda_kernels.cuh"
- #undef CALC_ENERGIES
- #undef PRUNE_NBL
+/*** Pair-list pruning kernels ***/
+/** Force only **/
+#define PRUNE_NBL
+#include "nbnxm_cuda_kernels.cuh"
+/** Force & energy **/
+#define CALC_ENERGIES
+#include "nbnxm_cuda_kernels.cuh"
+#undef CALC_ENERGIES
+#undef PRUNE_NBL
 
- /* Prune-only kernels */
- #include "nbnxm_cuda_kernel_pruneonly.cuh"
- #undef FUNCTION_DECLARATION_ONLY
+/* Prune-only kernels */
+#include "nbnxm_cuda_kernel_pruneonly.cuh"
+#undef FUNCTION_DECLARATION_ONLY
 
- /* Now generate the function definitions if we are using a single compilation unit. */
- #if GMX_CUDA_NB_SINGLE_COMPILATION_UNIT
- #    include "nbnxm_cuda_kernel_F_noprune.cu"
- #    include "nbnxm_cuda_kernel_F_prune.cu"
- #    include "nbnxm_cuda_kernel_VF_noprune.cu"
- #    include "nbnxm_cuda_kernel_VF_prune.cu"
- #    include "nbnxm_cuda_kernel_pruneonly.cu"
- // FEP kernels
- #    include "nbnxm_fep_cuda_kernel_F.cu"
- #    include "nbnxm_fep_cuda_kernel_VF.cu"
- #    include "nbnxm_fep_cuda_kernel_V.cu"
- #    include "nbnxm_foreign_fep_cuda_kernel_V.cu"
- #endif /* GMX_CUDA_NB_SINGLE_COMPILATION_UNIT */
+/* Now generate the function definitions if we are using a single compilation unit. */
+#if GMX_CUDA_NB_SINGLE_COMPILATION_UNIT
+#    include "nbnxm_cuda_kernel_F_noprune.cu"
+#    include "nbnxm_cuda_kernel_F_prune.cu"
+#    include "nbnxm_cuda_kernel_VF_noprune.cu"
+#    include "nbnxm_cuda_kernel_VF_prune.cu"
+#    include "nbnxm_cuda_kernel_pruneonly.cu"
+// FEP kernels
+#    include "nbnxm_fep_cuda_kernel_F.cu"
+#    include "nbnxm_fep_cuda_kernel_VF.cu"
+#    include "nbnxm_fep_cuda_kernel_V.cu"
+#    include "nbnxm_foreign_fep_cuda_kernel_V.cu"
+#endif /* GMX_CUDA_NB_SINGLE_COMPILATION_UNIT */
 
- namespace Nbnxm
- {
+namespace Nbnxm
+{
 
- /*! Nonbonded kernel function pointer type */
- typedef void (*nbnxn_cu_kfunc_ptr_t)(const NBAtomDataGpu, const NBParamGpu, const gpu_plist, bool);
- /*! Nonbonded FEP kernel function pointer type */
- typedef void (*nbnxn_fep_cu_kfunc_ptr_t)(const NBAtomDataGpu, const NBParamGpu, const gpu_feplist, bool);
- /*! Nonbonded foreign FEP kernel function pointer type */
- typedef void (*nbnxn_foreign_fep_cu_kfunc_ptr_t)(const NBAtomDataGpu, const NBParamGpu, const gpu_feplist, int);
- /*********************************/
+/*! Nonbonded kernel function pointer type */
+typedef void (*nbnxn_cu_kfunc_ptr_t)(const NBAtomDataGpu, const NBParamGpu, const gpu_plist, bool);
+/*! Nonbonded FEP kernel function pointer type */
+typedef void (*nbnxn_fep_cu_kfunc_ptr_t)(const NBAtomDataGpu, const NBParamGpu, const gpu_feplist, bool);
+/*! Nonbonded foreign FEP kernel function pointer type */
+typedef void (*nbnxn_foreign_fep_cu_kfunc_ptr_t)(const NBAtomDataGpu, const NBParamGpu, const gpu_feplist, int);
+/*********************************/
 
- /*! Returns the number of blocks to be used for the nonbonded GPU kernel. */
- static inline int calc_nb_kernel_nblock(int nwork_units, const DeviceInformation* deviceInfo)
- {
-     int max_grid_x_size;
+/*! Returns the number of blocks to be used for the nonbonded GPU kernel. */
+static inline int calc_nb_kernel_nblock(int nwork_units, const DeviceInformation* deviceInfo)
+{
+    int max_grid_x_size;
 
-     assert(deviceInfo);
-     /* CUDA does not accept grid dimension of 0 (which can happen e.g. with an
-        empty domain) and that case should be handled before this point. */
-     assert(nwork_units > 0);
+    assert(deviceInfo);
+    /* CUDA does not accept grid dimension of 0 (which can happen e.g. with an
+       empty domain) and that case should be handled before this point. */
+    assert(nwork_units > 0);
 
-     max_grid_x_size = deviceInfo->prop.maxGridSize[0];
+    max_grid_x_size = deviceInfo->prop.maxGridSize[0];
 
-     /* do we exceed the grid x dimension limit? */
-     if (nwork_units > max_grid_x_size)
-     {
-         gmx_fatal(FARGS,
-                   "Watch out, the input system is too large to simulate!\n"
-                   "The number of nonbonded work units (=number of super-clusters) exceeds the"
-                   "maximum grid size in x dimension (%d > %d)!",
-                   nwork_units,
-                   max_grid_x_size);
-     }
+    /* do we exceed the grid x dimension limit? */
+    if (nwork_units > max_grid_x_size)
+    {
+        gmx_fatal(FARGS,
+                  "Watch out, the input system is too large to simulate!\n"
+                  "The number of nonbonded work units (=number of super-clusters) exceeds the"
+                  "maximum grid size in x dimension (%d > %d)!",
+                  nwork_units,
+                  max_grid_x_size);
+    }
 
-     return nwork_units;
+    return nwork_units;
  }
 
 

@@ -74,6 +74,7 @@ class ArrayRef;
 class StepWorkload;
 
 /*! \brief The number on bonded function types supported on GPUs */
+// Add 6 new types on GPU
 static constexpr int numFTypesOnGpu = 14;
 
 /*! \brief List of all bonded function types supported on GPUs
@@ -83,10 +84,10 @@ static constexpr int numFTypesOnGpu = 14;
  * \note The function types in the list are ordered on increasing value.
  * \note Currently bonded are only supported with CUDA and SYCL, not with OpenCL.
  */
-constexpr std::array<int, numFTypesOnGpu> fTypesOnGpu = { F_BONDS,  F_HARMONIC, F_RESTRBONDS, F_ANGLES,
-                                                          F_UREY_BRADLEY, F_PDIHS,  F_RBDIHS,
-                                                          F_IDIHS, F_PIDIHS, F_LJ14, F_LJC14_Q,
-                                                          F_LJC_PAIRS_NB, F_ANGRES, F_DIHRES};
+constexpr std::array<int, numFTypesOnGpu> fTypesOnGpu = {
+    F_BONDS, F_HARMONIC, F_RESTRBONDS, F_ANGLES,  F_UREY_BRADLEY, F_PDIHS,  F_RBDIHS,
+    F_IDIHS, F_PIDIHS,   F_LJ14,       F_LJC14_Q, F_LJC_PAIRS_NB, F_ANGRES, F_DIHRES
+};
 
 /*! \brief Checks whether the GROMACS build allows to compute bonded interactions on a GPU.
  *
@@ -122,7 +123,7 @@ public:
      * \param[in] deviceContext              GPU device context (not used in CUDA).
      * \param[in] deviceStream               GPU device stream.
      * \param[in] wcycle                     The wallclock counter.
-     * \param[in] bFEP                       Whether do bonded FEP calculations on GPU.
+     * \param[in] bFEP                       Whether to run bonded FEP calculations on GPU.
      *
      */
     ListedForcesGpu(const gmx_ffparams_t&    ffparams,

@@ -294,6 +294,7 @@ endif()
 
 # Keeping the FEP tests separate for now to be able to judge runtime more easily
 # Can be included in mdrun tests later
+# FEP-on-GPU Tests
 set(testname "MdrunFEPonGPUTests")
 set(exename "mdrun-fep-gpu-test")
 

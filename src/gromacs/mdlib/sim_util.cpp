@@ -811,6 +811,7 @@ static void pmeGpuWaitAndReduce(gmx_pme_t*               pme,
  * \param[in]     lambdaQ          The Coulomb lambda of the current system state.
  * \param[in]     stepWork         Step schedule flags
  * \param[in]     wcycle           The wallcycle structure
+ * \param[in]     inputrec         The The input record
  */
 static void alternatePmeNbGpuWaitReduce(nonbonded_verlet_t* nbv,
                                         gmx_pme_t*          pmedata,
@@ -1671,6 +1672,7 @@ void do_force(FILE*                               fplog,
                 // higher-level object than the nb module.
                 fr->listedForcesGpu->updateInteractionListsAndDeviceBuffers(
                         nbv->getGridIndices(), top->idef, Nbnxm::gpuGetNBAtomData(nbv->gpu_nbv));
+                // Update device buffers for FEP listed force interactions
                 if (fr->efep != FreeEnergyPerturbationType::No && mdatoms->nPerturbed != 0 && simulationWork.useGpuFep)
                 {
                     fr->listedForcesGpu->updateFepValuesAndDeviceBuffers(

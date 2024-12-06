@@ -152,6 +152,7 @@ public:
      * \param[in] domainIdef     Interaction definitions for all listed interactions to be computed on this domain/rank
      * \param[in] numAtomsForce  Force are, potentially, computed for atoms 0 to \p numAtomsForce
      * \param[in] useGpu         Whether a GPU is used to compute (part of) the listed interactions
+     * \param[in] useGpuFep      Whether a GPU is used to compute the listed FEP interactions
      */
     void setup(const InteractionDefinitions& domainIdef, int numAtomsForce, bool useGpu, bool useGpuFep);
 

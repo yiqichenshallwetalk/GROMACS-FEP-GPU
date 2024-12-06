@@ -35,7 +35,6 @@
  * \brief Implements common internal types for different NBNXN GPU implementations
  *
  * \author Szilárd Páll <pall.szilard@gmail.com>
- * \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  * \ingroup module_nbnxm
  */
 
@@ -343,10 +342,13 @@ struct gpu_plist
 
 struct gpu_feplist
 {
-    int     nri, maxnri; /* Current/max number of i particles	   */
-    int     nrj, maxnrj; /* Current/max number of j particles	   */
+    int nri, maxnri;
+    int nshift, maxnshift;
+    int njidx, maxnjidx;
+    int nrj, maxnrj;
+    int nexcl, maxnexcl;
+
     DeviceBuffer<int>    iinr;        /* The i-elements                        */
-    DeviceBuffer<int>    gid;         /* Index in energy arrays                */
     DeviceBuffer<int>    shift;       /* Shift vector index                    */
     DeviceBuffer<int>    jindex;      /* Index in jjnr                         */
     DeviceBuffer<int>    jjnr;        /* The j-atom list                       */

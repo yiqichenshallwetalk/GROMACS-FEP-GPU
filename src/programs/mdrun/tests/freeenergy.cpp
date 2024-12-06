@@ -155,11 +155,11 @@ TEST_P(FreeEnergyReferenceTest, WithinTolerances)
     runner_.dhdlFileName_                    = simulationDhdlFileName.u8string();
 
     auto fep_option = std::vector<SimulationOptionTuple>();
-# ifdef FEPONCPU
+#if (defined FEPONCPU) || (!GMX_GPU_CUDA)
     fep_option.emplace_back(SimulationOptionTuple("-fep", "cpu"));
-# else
+#else
     fep_option.emplace_back(SimulationOptionTuple("-fep", "gpu"));
-# endif
+#endif
     runMdrun(&runner_, fep_option);
 
     /* Currently used tests write trajectory (x/v/f) frames every 20 steps.

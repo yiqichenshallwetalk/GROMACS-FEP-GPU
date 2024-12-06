@@ -40,8 +40,6 @@
  *
  *  NOTE: No include fence as it is meant to be included multiple times.
  *
- *  \author Yiqi Chen <yiqi.echo.chen@gmail.com>
- *  \ingroup module_nbnxm
  */
 
 #include "gromacs/gpu_utils/cuda_arch_utils.cuh"
@@ -98,7 +96,7 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 #else
 {
     /* convenience variables */
-    constexpr float minDistanceSquared = 1.0e-12F;
+    // constexpr float minDistanceSquared = 1.0e-12F;
     const float alphaCoulomb     = nbparam.alpha_coul;
     const float alphaVdw      = nbparam.alpha_vdw;
     float       alphaCoulombEff = alphaCoulomb;
@@ -297,7 +295,7 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 
                   bool withinCutoffMask = (r2 < rCutoffMaxSq);
                   // Ensure distance do not become so small that r^-12 overflows
-                  r2 = max(r2, minDistanceSquared);
+                  r2     = max(r2, c_nbnxnMinDistanceSquared);
                   inv_r = rsqrt(r2);
                   inv_r2 = inv_r * inv_r;
 

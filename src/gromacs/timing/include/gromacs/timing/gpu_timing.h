@@ -36,7 +36,6 @@
  *
  *  \author Szilard Pall <pall.szilard@gmail.com>
  *  \author Mark Abraham <mark.j.abraham@gmail.com>
- *  \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  *  \inlibraryapi
  */
 

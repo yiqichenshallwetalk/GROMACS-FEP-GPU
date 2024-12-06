@@ -71,17 +71,18 @@ namespace Nbnxm
 class GridSet;
 
 GPU_FUNC_QUALIFIER
-void cuda_copy_fepparams(NbnxmGpu*      nb,
-                        const bool            bFEP,
-                        const float          alpha_coul,
-                        const float           alpha_vdw,
-                        const int             lam_power,
-                        const float       sc_sigma6_def,
-                        const float       sc_sigma6_min,
-                         const float       lambda_q,
-                         const float       lambda_v,
-                         const int         n_lambda,
-                         const gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, std::vector<double>> all_lambda);
+void cuda_copy_fepparams(
+        NbnxmGpu*   nb,
+        const bool  bFEP,
+        const float alpha_coul,
+        const float alpha_vdw,
+        const int   lam_power,
+        const float sc_sigma6_def,
+        const float sc_sigma6_min,
+        const float lambda_q,
+        const float lambda_v,
+        const int   n_lambda,
+        const gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, std::vector<double>> all_lambda) GPU_FUNC_TERM;
 
 /** Initializes the data structures related to GPU nonbonded calculations. */
 GPU_FUNC_QUALIFIER

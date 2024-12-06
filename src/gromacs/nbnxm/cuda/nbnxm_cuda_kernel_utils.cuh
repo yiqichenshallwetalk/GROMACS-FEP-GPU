@@ -39,7 +39,6 @@
  *  kernels are included (has to be preceded by nbnxn_cuda_types.h).
  *
  *  \author Szilárd Páll <pall.szilard@gmail.com>
- *  \author Yiqi Chen <yiqi.echo.chen@gmail.com>
  *  \ingroup module_nbnxm
  */
 #include <cassert>

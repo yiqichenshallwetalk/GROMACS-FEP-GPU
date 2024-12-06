@@ -40,8 +40,6 @@
  *
  *  NOTE: No include fence as it is meant to be included multiple times.
  *
- *  \author Yiqi Chen <yiqi.echo.chen@gmail.com>
- *  \ingroup module_nbnxm
  */
 
 #include "gromacs/gpu_utils/cuda_arch_utils.cuh"
@@ -100,7 +98,7 @@
 #else
 {
     /* convenience variables */
-    constexpr float minDistanceSquared = 1.0e-12F;
+    // constexpr float minDistanceSquared = 1.0e-12F;
     const float alphaCoulomb     = nbparam.alpha_coul;
     const float alphaVdw      = nbparam.alpha_vdw;
     float       alphaCoulombEff = alphaCoulomb;
@@ -256,7 +254,7 @@
     DVDL_el      = 0.0F;
 #    endif /* CALC_ENERGIES */
 
-    // One warp for one ri
+    // One warp for one ri entry
     if (wid_global < nri)
     {
         const int nj0      = __shfl_sync(c_fullWarpMask, jindex[wid_global], 0, warp_size);
@@ -326,7 +324,7 @@
                 if (!withinCutoffMask && pairIncluded)
                     continue;
                 // Ensure distance do not become so small that r^-12 overflows
-                r2 = max(r2, minDistanceSquared);
+                r2     = max(r2, c_nbnxnMinDistanceSquared);
                 inv_r = rsqrt(r2);
                 inv_r2 = inv_r * inv_r;
 

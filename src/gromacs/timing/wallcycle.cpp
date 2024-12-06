@@ -996,6 +996,7 @@ void wallcycle_print(FILE*                            fplog,
             }
         }
         tot_gpu += gpu_nbnxn_t->pruneTime.t;
+        // GPU FEP time
         tot_gpu += gpu_nbnxn_t->fepTime.t;
 
         tot_cpu_overlap = wc->wcc[WallCycleCounter::Force].c;
