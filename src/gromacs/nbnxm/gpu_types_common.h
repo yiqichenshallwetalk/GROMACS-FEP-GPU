@@ -353,10 +353,6 @@ struct gpu_feplist
     DeviceBuffer<int>    jindex;      /* Index in jjnr                         */
     DeviceBuffer<int>    jjnr;        /* The j-atom list                       */
     DeviceBuffer<int>   excl_fep;    /* Exclusions for FEP with Verlet scheme */
-
-    /* parameter+variables for normal and rolling pruning */
-    //! true after search, indicates that initial pruning with outer pruning is needed
-    bool haveFreshList;
 };
 
 } // namespace Nbnxm

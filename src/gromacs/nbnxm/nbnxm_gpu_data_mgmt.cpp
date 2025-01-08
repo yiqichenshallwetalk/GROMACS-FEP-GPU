@@ -246,29 +246,28 @@ static inline void init_plist(gpu_plist* pl)
     pl->rollingPruningPart     = 0;
 }
 
-/*! Initializes the pair list data structure. */
-static inline void init_feplist(gpu_feplist* pl)
+/*! Initializes the fep pair list data structure on GPU. */
+static inline void init_feplist(gpu_feplist* fep_pl)
 {
     /* initialize to nullptr pointers to data that is not allocated here and will
        need reallocation in nbnxn_gpu_init_feplist */
-    pl->iinr    = nullptr;
-    pl->shift  = nullptr;
-    pl->jindex = nullptr;
-    pl->jjnr   = nullptr;
-    pl->excl_fep= nullptr;
+    fep_pl->iinr    = nullptr;
+    fep_pl->shift  = nullptr;
+    fep_pl->jindex = nullptr;
+    fep_pl->jjnr   = nullptr;
+    fep_pl->excl_fep= nullptr;
 
     /* size -1 indicates that the respective array hasn't been initialized yet */
-    pl->nri           = -1;
-    pl->maxnri        = -1;
-    pl->nrj           = -1;
-    pl->maxnrj        = -1;
-    pl->nshift        = -1;
-    pl->maxnshift     = -1;
-    pl->njidx         = -1;
-    pl->maxnjidx      = -1;
-    pl->nexcl         = -1;
-    pl->maxnexcl      = -1;
-    pl->haveFreshList = false;
+    fep_pl->nri           = -1;
+    fep_pl->maxnri        = -1;
+    fep_pl->nrj           = -1;
+    fep_pl->maxnrj        = -1;
+    fep_pl->nshift        = -1;
+    fep_pl->maxnshift     = -1;
+    fep_pl->njidx         = -1;
+    fep_pl->maxnjidx      = -1;
+    fep_pl->nexcl         = -1;
+    fep_pl->maxnexcl      = -1;
 }
 
 static inline void init_timings(gmx_wallclock_gpu_nbnxn_t* t)
@@ -869,8 +868,6 @@ void gpu_init_feppairlist(NbnxmGpu* nb, t_nblist* h_feplist, const InteractionLo
         iTimers.pl_h2d.closeTimingRegion(deviceStream);
     }
 
-    /* the next use of thist list we be the first one, so we need to prune */
-    d_feplist->haveFreshList = true;
 }
 
 void gpu_init_atomdata(NbnxmGpu* nb, const nbnxn_atomdata_t* nbat)
