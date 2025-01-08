@@ -1725,7 +1725,6 @@ __device__ __forceinline__ void angleres_gpu(const int       i,
         float cos_phi = cos_angle(r_ij, r_kl);
         float phi     = acosf(cos_phi);
         float vid, dVdphi, dvdlambda = 0.0F;
-        float st, sth, nrij2, nrkl2, c, cij, ckl;
 
         dvdlambda = dopdihs_min_fep_gpu(d_forceparams[type].pdihs.cpA,
                                   d_forceparams[type].pdihs.cpB,
@@ -1737,9 +1736,6 @@ __device__ __forceinline__ void angleres_gpu(const int       i,
                                   &vid,
                                   &dVdphi); 
 
-        // printf("i: %d, cosine of phi: %f, phi: %f.\n", i, cos_phi, phi); 
-        // printf("ai: %d, aj: %d, ak: %d, al: %d.\n", ai, aj, ak, al); 
-        // printf("vid: %f, dvdllambda: %f.\n", vid, dvdlambda); 
         if (calcEner)
         {
             *vtot_loc += vid;
