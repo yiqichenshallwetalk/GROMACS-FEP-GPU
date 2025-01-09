@@ -183,8 +183,6 @@ static inline void gpu_reduce_staged_foreign_term(const NBStagingData&      nbst
     /* add up energies and shift forces (only once at local F wait) */
     if (iLocality == InteractionLocality::Local)
     {
-        real e_tot;
-        double dvdl_tot;
         for (int idx = 0; idx < n_lambda+1; idx ++) {
             foreign_term->accumulate(idx, FreeEnergyPerturbationCouplingType::Vdw, nbst.eLJForeign[idx], nbst.dvdlLJForeign[idx]);
             foreign_term->accumulate(idx, FreeEnergyPerturbationCouplingType::Coul, nbst.eElecForeign[idx], nbst.dvdlElecForeign[idx]);

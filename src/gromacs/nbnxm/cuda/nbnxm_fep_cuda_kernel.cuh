@@ -125,7 +125,7 @@
 #    endif
 
     float rInvC, r2C, rPInvC, rPInvV;
-#    if defined LJ_FORCE_SWITCH || defined LJ_POT_SWITCH || defined LJ_EWALD
+#    if defined LJ_POT_SWITCH
     float rInvV, r2V;
 #    endif
     float sigma6[2], c6AB[2], c12AB[2];
@@ -141,9 +141,8 @@
 
 #    ifdef LJ_COMB_LB
     float sigmaAB[2];
-#    endif
-
     float epsilonAB[2];
+#    endif
 
     const float4* xq          = atdat.xq;
     const float4* q4          = atdat.q4;
@@ -223,7 +222,6 @@
 #    endif
     float qAi, qAj_f, r2, rpm2, rp, inv_r, inv_r2;
     float qBi, qBj_f;
-    float c6, c12;
 
     float scalarForcePerDistance;
 #    ifdef CALC_ENERGIES
@@ -281,7 +279,7 @@
         ljcp_iAB[1] = make_float2(ljComb4_buf.z, ljComb4_buf.w);
 #    endif
         fci = make_float3(0.0F);
-        #pragma unroll
+#    pragma unroll
         for (int i = nj0; i < nj1; i += warp_size)
         {
             int j = i + tid_in_warp;
@@ -410,19 +408,19 @@
                                 if ((alphaCoulombEff != alphaVdwEff) || (softcoreLambdaFactorVdw[k] != softcoreLambdaFactorCoul[k]))
                                 {
                                     rPInvV = 1.0F / (alphaVdwEff * softcoreLambdaFactorVdw[k] * sigma6[k] + rp);
-    #    if defined LJ_FORCE_SWITCH || defined LJ_POT_SWITCH || defined LJ_EWALD
+#    if defined LJ_POT_SWITCH
                                     r2V    = rcbrt(rPInvV);
                                     rInvV = rsqrt(r2V);
-    #    endif
+#    endif
                                 }
                                 else
                                 {
                                     /* We can avoid one expensive pow and one / operation */
                                     rPInvV = rPInvC;
-    #    if defined LJ_FORCE_SWITCH || defined LJ_POT_SWITCH || defined LJ_EWALD
+#    if defined LJ_POT_SWITCH
                                     r2V    = r2C;
                                     rInvV  = rInvC;
-    #    endif
+#    endif
                                 }
                             }
                             else
@@ -432,10 +430,10 @@
                                 rInvC  = inv_r;
 
                                 rPInvV = 1.0F;
-    #    if defined LJ_FORCE_SWITCH || defined LJ_POT_SWITCH || defined LJ_EWALD
+#    if defined LJ_POT_SWITCH
                                 r2V    = r2;
                                 rInvV  = inv_r;
-    #    endif
+#    endif
                             }
 
                             if (c6AB[k] != 0.0F || c12AB[k] != 0.0F)

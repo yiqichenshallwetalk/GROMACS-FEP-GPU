@@ -114,9 +114,9 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
       #    endif
 
       float rInvC, r2C, rPInvC, rPInvV;
-      #    if defined LJ_FORCE_SWITCH || defined LJ_POT_SWITCH || defined LJ_EWALD
+#    if defined LJ_POT_SWITCH
       float rInvV, r2V;
-      #    endif
+#    endif
       float sigma6[2], c6AB[2], c12AB[2];
       float qq[2];
       float scalarForcePerDistanceVdw[2];
@@ -124,11 +124,10 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
       float Vcoul[2];
       float Vvdw[2];
 
-      #    ifdef LJ_COMB_LB
+#    ifdef LJ_COMB_LB
       float sigmaAB[2];
-      #    endif
-
       float epsilonAB[2];
+#    endif
 
       const float4* xq          = atdat.xq;
       const float4* q4          = atdat.q4;
@@ -136,30 +135,30 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 
       float         rCutoffCoulSq = nbparam.rcoulomb_sq;
       float         rCutoffMaxSq = rCutoffCoulSq;
-      #    ifdef VDW_CUTOFF_CHECK
+#    ifdef VDW_CUTOFF_CHECK
       float         rCutoffVdwSq     = nbparam.rvdw_sq;
       float         vdw_in_range;
       rCutoffMaxSq = max(rCutoffCoulSq, rCutoffVdwSq);
-      #    endif
-      #    ifdef EL_RF
+#    endif
+#    ifdef EL_RF
       float         two_k_rf = nbparam.two_k_rf;
-      #    endif
-      #    ifdef EL_EWALD_ANA
-      float         beta2    = nbparam.ewald_beta * nbparam.ewald_beta;
-      float         beta3    = nbparam.ewald_beta * nbparam.ewald_beta * nbparam.ewald_beta;
-      #    endif
+#    endif
+      // #    ifdef EL_EWALD_ANA
+      // float         beta2    = nbparam.ewald_beta * nbparam.ewald_beta;
+      // float         beta3    = nbparam.ewald_beta * nbparam.ewald_beta * nbparam.ewald_beta;
+      // #    endif
 
-      #    ifdef EL_EWALD_ANY
+#    ifdef EL_EWALD_ANY
       float         beta     = nbparam.ewald_beta;
-      float         v_lr, f_lr;
-      #    endif
+      float         v_lr;
+#    endif
 
       //#    ifdef CALC_ENERGIES
-      #        ifdef EL_EWALD_ANY
+#    ifdef EL_EWALD_ANY
       float         ewald_shift = nbparam.sh_ewald;
-      #        else
+#    else
       float c_rf = nbparam.c_rf;
-      #        endif /* EL_EWALD_ANY */
+#    endif /* EL_EWALD_ANY */
 
     /* thread/block/warp id-s */
     int tid        = threadIdx.y * blockDim.x + threadIdx.x;
@@ -170,24 +169,24 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
     // thread Id within a warp
     int tid_in_warp = tid % warp_size;
 
-      #    ifndef LJ_COMB
-      #    else
+#    ifndef LJ_COMB
+#    else
       float2        ljcp_iAB[2], ljcp_jAB[2];
-      #    endif
+#    endif
       float qAi, qAj_f, r2, rpm2, rp, inv_r, inv_r2;
       float qBi, qBj_f;
-      float c6, c12;
+      // float c6, c12;
 
       //float  int_bit;
       float  E_lj, E_el;
       float  DVDL_lj, DVDL_el;
 
       float4 xqbuf, q4_buf;
-      #    ifndef LJ_COMB
+#    ifndef LJ_COMB
           int4 atomTypes4_buf;
-      #    else
+#    else
           float4 ljComb4_buf;
-      #    endif
+#    endif
 
       float3 xi, xj, rv;
 
@@ -202,7 +201,7 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
       constexpr float softcoreRPower = 6.0F;
 
       float dLambdaFactor[2];
-      float softcoreDlFactorCoul[2];
+      // float softcoreDlFactorCoul[2];
       float softcoreDlFactorVdw[2];
 
       /*derivative of the lambda factor for state A and B */
@@ -251,15 +250,15 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
             qAi = q4_buf.x * nbparam.epsfac;
             qBi = q4_buf.y * nbparam.epsfac;
 
-      #    ifndef LJ_COMB
+#    ifndef LJ_COMB
             atomTypes4_buf = atomTypes4[ai];
             typeiAB[0] = atomTypes4_buf.x;
             typeiAB[1] = atomTypes4_buf.y;
-      #    else
+#    else
             ljComb4_buf = ljComb4[ai];
             ljcp_iAB[0] = make_float2(ljComb4_buf.x, ljComb4_buf.y);
             ljcp_iAB[1] = make_float2(ljComb4_buf.z, ljComb4_buf.w);
-      #    endif
+#    endif
 
             int aj;
             bool pairIncluded;
@@ -279,15 +278,15 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 
                   qq[0] = qAi * qAj_f;
                   qq[1] = qBi * qBj_f;
-                  #    ifndef LJ_COMB
+#    ifndef LJ_COMB
                         atomTypes4_buf = atomTypes4[aj];
                         typejAB[0] = atomTypes4_buf.x;
                         typejAB[1] = atomTypes4_buf.y;
-                  #    else
+#    else
                         ljComb4_buf = ljComb4[aj];
                         ljcp_jAB[0] = make_float2(ljComb4_buf.x, ljComb4_buf.y);
                         ljcp_jAB[1] = make_float2(ljComb4_buf.z, ljComb4_buf.w);
-                  #    endif
+#    endif
 
                   /* distance between i and j atoms */
                   rv = xi - xj;
@@ -325,8 +324,8 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                               softcoreLambdaFactorCoul[k] =
                                     (lambdaPower == 2 ? (1.0F - lambdaFactorCoul[k]) * (1.0F - lambdaFactorCoul[k])
                                                       : (1.0F - lambdaFactorCoul[k]));
-                              softcoreDlFactorCoul[k] = dLambdaFactor[k] * lambdaPower / softcoreRPower
-                                                      * (lambdaPower == 2 ? (1.0F - lambdaFactorCoul[k]) : 1.0F);
+                              // softcoreDlFactorCoul[k] = dLambdaFactor[k] * lambdaPower / softcoreRPower
+                              //                         * (lambdaPower == 2 ? (1.0F - lambdaFactorCoul[k]) : 1.0F);
                               softcoreLambdaFactorVdw[k] =
                                     (lambdaPower == 2 ? (1.0F - lambdaFactorVdw[k]) * (1.0F - lambdaFactorVdw[k])
                                                       : (1.0F - lambdaFactorVdw[k]));
@@ -343,19 +342,19 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 
                         for (int k = 0; k < 2; k++)
                         {
-                        #    ifndef LJ_COMB
+#    ifndef LJ_COMB
                               /* LJ 6*C6 and 12*C12 */
                               fetch_nbfp_c6_c12(c6AB[k], c12AB[k], nbparam,
                                                 numTypes * typeiAB[k] + typejAB[k]);
                               if (useSoftCore)
                                     convert_c6_c12_to_sigma6(c6AB[k], c12AB[k], &(sigma6[k]), sigma6_min, sigma6_def);
-                        #    else
-                        #        ifdef LJ_COMB_GEOM
+#    else
+#        ifdef LJ_COMB_GEOM
                               c6AB[k]  = ljcp_iAB[k].x * ljcp_jAB[k].x;
                               c12AB[k] = ljcp_iAB[k].y * ljcp_jAB[k].y;
                               if (useSoftCore)
                                     convert_c6_c12_to_sigma6(c6AB[k], c12AB[k], &(sigma6[k]), sigma6_min, sigma6_def);
-                        #        else
+#        else
                               /* LJ 2^(1/6)*sigma and 12*epsilon */
                               sigmaAB[k]   = ljcp_iAB[k].x + ljcp_jAB[k].x;
                               if (ljcp_iAB[k].x == 0.0F || ljcp_jAB[k].x == 0.0F)
@@ -376,8 +375,8 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                                     }
                               }
 
-                              #        endif /* LJ_COMB_GEOM */
-                              #    endif     /* LJ_COMB */
+#        endif /* LJ_COMB_GEOM */
+#    endif     /* LJ_COMB */
                               }
                               if (useSoftCore)
                               {
@@ -411,19 +410,19 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                                                 if ((alphaCoulombEff != alphaVdwEff) || (softcoreLambdaFactorVdw[k] != softcoreLambdaFactorCoul[k])) // || (alphaCoulomb != 0))
                                                 {
                                                       rPInvV = 1.0F / (alphaVdwEff * softcoreLambdaFactorVdw[k] * sigma6[k] + rp);
-                                                #    if defined LJ_FORCE_SWITCH || defined LJ_POT_SWITCH || defined LJ_EWALD
+#    if defined LJ_POT_SWITCH
                                                       r2V    = rcbrt(rPInvV);
                                                       rInvV = rsqrt(r2V);
-                                                #    endif
+#    endif
                                                 }
                                                 else
                                                 {
                                                       /* We can avoid one expensive pow and one / operation */
                                                       rPInvV = rPInvC;
-                                                #    if defined LJ_FORCE_SWITCH || defined LJ_POT_SWITCH || defined LJ_EWALD
+#    if defined LJ_POT_SWITCH
                                                       r2V    = r2C;
                                                       rInvV  = rInvC;
-                                                #    endif
+#    endif
                                                 }
                                           }
                                           else
@@ -432,10 +431,10 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                                                 r2C    = r2;
                                                 rInvC  = inv_r;
                                                 rPInvV = 1.0F;
-                                          #    if defined LJ_FORCE_SWITCH || defined LJ_POT_SWITCH || defined LJ_EWALD
+#    if defined LJ_POT_SWITCH
                                                 r2V    = r2;
                                                 rInvV  = inv_r;
-                                          #    endif
+#    endif
                                           }
 
                                           if (c6AB[k] != 0.0F || c12AB[k] != 0.0F)
@@ -452,33 +451,33 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                                                             - (Vvdw6 + c6AB[k] * nbparam.dispersion_shift.cpot)
                                                                   * c_oneSixth);
 
-                                          #    ifdef LJ_POT_SWITCH
+#    ifdef LJ_POT_SWITCH
                                                 calculate_potential_switch_F_E(nbparam, rInvV, r2V,
                                                                               &(scalarForcePerDistanceVdw[k]), &(Vvdw[k]));
-                                          #    endif     /* LJ_POT_SWITCH */
+#    endif /* LJ_POT_SWITCH */
 
-                                          #    ifdef VDW_CUTOFF_CHECK
+#    ifdef VDW_CUTOFF_CHECK
                                                 /* Separate VDW cut-off check to enable twin-range cut-offs
                                                 * (rvdw < rcoulomb <= rlist)
                                                 */
                                                 vdw_in_range = (r2 < rCutoffVdwSq) ? 1.0F : 0.0F;
                                                 Vvdw[k] *= vdw_in_range;
-                                          #    endif /* VDW_CUTOFF_CHECK */
+#    endif /* VDW_CUTOFF_CHECK */
                                           }
 
                                           if (qq[k] != 0.0F)
                                           {
 
-                                          #        ifdef EL_CUTOFF
+#    ifdef EL_CUTOFF
                                                 Vcoul[k]  = qq[k] * (rInvC - c_rf);
-                                          #        endif
-                                          #        ifdef EL_RF
+#    endif
+#    ifdef EL_RF
                                                 Vcoul[k] = qq[k] * (rInvC + 0.5F * two_k_rf * r2C - c_rf);
-                                          #        endif
-                                          #        ifdef EL_EWALD_ANY
+#    endif
+#    ifdef EL_EWALD_ANY
                                                 /* 1.0f - erff is faster than erfcf */
                                                 Vcoul[k] = qq[k] * (rInvC - ewald_shift);
-                                          #        endif /* EL_EWALD_ANY */
+#    endif /* EL_EWALD_ANY */
                                           }
                                     }
                               }// end for (int k = 0; k < 2; k++)
@@ -491,6 +490,7 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                                     if (useSoftCore)
                                     {
                                           DVDL_el += Vcoul[k] * dLambdaFactor[k];
+                                          //+ lambdaFactorCoul[k] * alphaCoulombEff * softcoreDlFactorCoul[k] * scalarForcePerDistanceCoul[k] * sigma6[k];
                                           DVDL_lj += Vvdw[k] * dLambdaFactor[k]
                                                       + lambdaFactorVdw[k] * alphaVdwEff * softcoreDlFactorVdw[k] * scalarForcePerDistanceVdw[k] * sigma6[k];
                                     }
@@ -503,13 +503,13 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                         } //if (pairIncluded && withinCutoffMask)
 
                         // ELEC REACTIONFIELD part
-                        #   if defined EL_CUTOFF || defined EL_RF
+#    if defined EL_CUTOFF || defined EL_RF
                         if (!pairIncluded && j < nj1) {
-                        # if defined EL_CUTOFF
+#        if defined EL_CUTOFF
                               float VV = -nbparam.c_rf;
-                        # else
+#        else
                               float VV = 0.5F * two_k_rf * r2 - nbparam.c_rf;
-                        # endif
+#        endif
 
                               if (ai == aj)
                                     VV *= 0.5F;
@@ -519,9 +519,9 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                                           DVDL_el += (dLambdaFactor[k] * qq[k]) * VV;
                               }
                         }
-                        #   endif
+#    endif
 
-                        #    ifdef EL_EWALD_ANY
+#    ifdef EL_EWALD_ANY
                         if ((!pairIncluded || r2 < rCutoffCoulSq) && j < nj1)
                         {
                               v_lr = inv_r > 0.0F ? inv_r * erff(r2 * inv_r * beta) : 2.0F * beta * M_FLOAT_1_SQRTPI;
@@ -533,7 +533,7 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                                     DVDL_el -= (dLambdaFactor[k] * qq[k]) * v_lr;
                               }
                         }
-                        #    endif
+#    endif
 
                         reduce_fep_energy_warp_shfl(E_lj, E_el, DVDL_lj, DVDL_el,
                               e_lj+lambdaIdx, e_el+lambdaIdx, dvdl_lj+lambdaIdx, dvdl_el+lambdaIdx, tid, c_fullWarpMask);
