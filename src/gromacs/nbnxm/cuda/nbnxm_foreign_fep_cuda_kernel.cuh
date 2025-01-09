@@ -119,7 +119,7 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 #    endif
       float sigma6[2], c6AB[2], c12AB[2];
       float qq[2];
-      float scalarForcePerDistanceVdw[2];
+      float scalarForcePerDistanceCoul[2], scalarForcePerDistanceVdw[2];
 
       float Vcoul[2];
       float Vvdw[2];
@@ -201,7 +201,7 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
       constexpr float softcoreRPower = 6.0F;
 
       float dLambdaFactor[2];
-      // float softcoreDlFactorCoul[2];
+      float softcoreDlFactorCoul[2];
       float softcoreDlFactorVdw[2];
 
       /*derivative of the lambda factor for state A and B */
@@ -324,8 +324,9 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                               softcoreLambdaFactorCoul[k] =
                                     (lambdaPower == 2 ? (1.0F - lambdaFactorCoul[k]) * (1.0F - lambdaFactorCoul[k])
                                                       : (1.0F - lambdaFactorCoul[k]));
-                              // softcoreDlFactorCoul[k] = dLambdaFactor[k] * lambdaPower / softcoreRPower
-                              //                         * (lambdaPower == 2 ? (1.0F - lambdaFactorCoul[k]) : 1.0F);
+                              softcoreDlFactorCoul[k] =
+                                      dLambdaFactor[k] * lambdaPower / softcoreRPower
+                                      * (lambdaPower == 2 ? (1.0F - lambdaFactorCoul[k]) : 1.0F);
                               softcoreLambdaFactorVdw[k] =
                                     (lambdaPower == 2 ? (1.0F - lambdaFactorVdw[k]) * (1.0F - lambdaFactorVdw[k])
                                                       : (1.0F - lambdaFactorVdw[k]));
@@ -334,6 +335,7 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                         }
 
                         scalarForcePerDistanceVdw[0] = scalarForcePerDistanceVdw[1] = 0.0F;
+                        scalarForcePerDistanceCoul[0] = scalarForcePerDistanceCoul[1] = 0.0F;
 
                         if (pairIncluded && withinCutoffMask)
                         {
@@ -395,6 +397,7 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
                               for (int k = 0; k < 2; k++)
                               {
                                     scalarForcePerDistanceVdw[k] = 0.0F;
+                                    scalarForcePerDistanceCoul[k] = 0.0F;
                                     Vcoul[k]  = 0.0F;
                                     Vvdw[k]   = 0.0F;
 
@@ -467,18 +470,34 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 
                                           if (qq[k] != 0.0F)
                                           {
-
 #    ifdef EL_CUTOFF
-                                                Vcoul[k]  = qq[k] * (rInvC - c_rf);
+#        ifdef EXCLUSION_FORCES
+                                              scalarForcePerDistanceCoul[k] = qq[k] * rInvC;
+#        else
+                                              scalarForcePerDistanceCoul[k] = qq[k] * rInvC;
+#        endif
 #    endif
 #    ifdef EL_RF
-                                                Vcoul[k] = qq[k] * (rInvC + 0.5F * two_k_rf * r2C - c_rf);
+                                              scalarForcePerDistanceCoul[k] =
+                                                      qq[k] * (rInvC - two_k_rf * r2C);
+#    endif
+#    if defined EL_EWALD_ANY
+                                              scalarForcePerDistanceCoul[k] = qq[k] * rInvC;
+#    endif /* EL_EWALD_ANA/TAB */
+
+#    ifdef EL_CUTOFF
+                                              Vcoul[k] = qq[k] * (rInvC - c_rf);
+#    endif
+#    ifdef EL_RF
+                                              Vcoul[k] = qq[k] * (rInvC + 0.5F * two_k_rf * r2C - c_rf);
 #    endif
 #    ifdef EL_EWALD_ANY
-                                                /* 1.0f - erff is faster than erfcf */
-                                                Vcoul[k] = qq[k] * (rInvC - ewald_shift);
+                                              /* 1.0f - erff is faster than erfcf */
+                                              Vcoul[k] = qq[k] * (rInvC - ewald_shift);
 #    endif /* EL_EWALD_ANY */
                                           }
+                                          scalarForcePerDistanceCoul[k] *= rPInvC;
+                                          scalarForcePerDistanceVdw[k] *= rPInvV;
                                     }
                               }// end for (int k = 0; k < 2; k++)
 
@@ -489,10 +508,14 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 
                                     if (useSoftCore)
                                     {
-                                          DVDL_el += Vcoul[k] * dLambdaFactor[k];
-                                          //+ lambdaFactorCoul[k] * alphaCoulombEff * softcoreDlFactorCoul[k] * scalarForcePerDistanceCoul[k] * sigma6[k];
-                                          DVDL_lj += Vvdw[k] * dLambdaFactor[k]
-                                                      + lambdaFactorVdw[k] * alphaVdwEff * softcoreDlFactorVdw[k] * scalarForcePerDistanceVdw[k] * sigma6[k];
+                                        DVDL_el += Vcoul[k] * dLambdaFactor[k]
+                                                   + lambdaFactorCoul[k] * alphaCoulombEff
+                                                             * softcoreDlFactorCoul[k]
+                                                             * scalarForcePerDistanceCoul[k] * sigma6[k];
+                                        DVDL_lj += Vvdw[k] * dLambdaFactor[k]
+                                                   + lambdaFactorVdw[k] * alphaVdwEff
+                                                             * softcoreDlFactorVdw[k]
+                                                             * scalarForcePerDistanceVdw[k] * sigma6[k];
                                     }
                                     else
                                     {
