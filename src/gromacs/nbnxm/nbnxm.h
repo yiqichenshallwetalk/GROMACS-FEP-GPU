@@ -306,6 +306,8 @@ public:
     //! Returns whether a GPU is use for the non-bonded calculations
     bool useGpu() const { return kernelSetup_.kernelType == Nbnxm::KernelType::Gpu8x8x8; }
 
+    bool useFepGpu() const { return useGpuForFep_; }
+
     //! Returns whether a GPU is emulated for the non-bonded calculations
     bool emulateGpu() const
     {
