@@ -124,9 +124,9 @@
     const float4* ljComb4 = atdat.ljComb4;
 #    endif
 
-    float rInvC, r2C, rPInvC, rPInvV;
+    float rInvC, r2C, rPInvC, rPInvV, rInv6;
 #    if defined LJ_POT_SWITCH
-    float rInvV, r2V;
+    float rInvV, r2V, rV;
 #    endif
     float sigma6[2], c6AB[2], c12AB[2];
     float qq[2];
@@ -328,8 +328,16 @@
 
                 if (pairIncluded)
                 {
-                    rpm2 = r2 * r2;
-                    rp   = rpm2 * r2;
+                    if (useSoftCore)
+                    {
+                        rpm2 = r2 * r2;
+                        rp   = rpm2 * r2;
+                    }
+                    else
+                    {
+                        rpm2 = inv_r * inv_r;
+                        rp   = 1.0F;
+                    }
 
                     for (int k = 0; k < 2; k++)
                     {
@@ -411,6 +419,7 @@
 #    if defined LJ_POT_SWITCH
                                     r2V    = rcbrt(rPInvV);
                                     rInvV = rsqrt(r2V);
+                                    rV     = r2V * rInvV;
 #    endif
                                 }
                                 else
@@ -420,6 +429,7 @@
 #    if defined LJ_POT_SWITCH
                                     r2V    = r2C;
                                     rInvV  = rInvC;
+                                    rV     = r2V * rInvV;
 #    endif
                                 }
                             }
@@ -433,16 +443,22 @@
 #    if defined LJ_POT_SWITCH
                                 r2V    = r2;
                                 rInvV  = inv_r;
+                                rV     = r2V * rInvV;
 #    endif
                             }
 
                             if (c6AB[k] != 0.0F || c12AB[k] != 0.0F)
                             {
-                                if (!useSoftCore) {
-                                    rPInvV = inv_r2 * inv_r2 * inv_r2;
+                                if (!useSoftCore)
+                                {
+                                    rInv6 = inv_r2 * inv_r2 * inv_r2;
                                 }
-                                float Vvdw6  = c6AB[k] * rPInvV;
-                                float Vvdw12 = c12AB[k] * rPInvV * rPInvV;
+                                else
+                                {
+                                    rInv6 = rPInvV;
+                                }
+                                float Vvdw6                     = c6AB[k] * rInv6;
+                                float Vvdw12                    = c12AB[k] * rInv6 * rInv6;
                                 scalarForcePerDistanceVdw[k]    = Vvdw12 - Vvdw6;
     #    if defined CALC_ENERGIES || defined LJ_POT_SWITCH
                                 Vvdw[k]      =
@@ -453,12 +469,12 @@
 
     #    ifdef LJ_POT_SWITCH
     #        ifdef CALC_ENERGIES
-                                calculate_potential_switch_F_E(nbparam, rInvV, r2V,
-                                                            &(scalarForcePerDistanceVdw[k]), &(Vvdw[k]));
-    #        else
-                                calculate_potential_switch_F(nbparam, rInvV, r2V, &(scalarForcePerDistanceVdw[k]),
-                                                            &(Vvdw[k]));
-    #        endif /* CALC_ENERGIES */
+                                calculate_potential_switch_Fr_E(
+                                        nbparam, rV, &(scalarForcePerDistanceVdw[k]), &(Vvdw[k]));
+#        else
+                                calculate_potential_switch_Fr(
+                                        nbparam, rV, &(scalarForcePerDistanceVdw[k]), &(Vvdw[k]));
+#        endif /* CALC_ENERGIES */
     #    endif     /* LJ_POT_SWITCH */
 
     #    ifdef VDW_CUTOFF_CHECK

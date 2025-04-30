@@ -101,8 +101,12 @@ convert_c6_c12_to_sigma6(const float c6, const float c12, float* sigma6, const f
 }
 
 /*! Apply force switch,  force + energy version. */
-static __forceinline__ __device__ void
-calculate_force_switch_F(const NBParamGpu nbparam, float c6, float c12, float inv_r, float r2, float* F_invr)
+static __forceinline__ __device__ void calculate_force_switch_F(const NBParamGpu nbparam,
+                                                                const float      c6,
+                                                                const float      c12,
+                                                                const float      inv_r,
+                                                                const float      r2,
+                                                                float*           F_invr)
 {
     float r, r_switch;
 
@@ -122,10 +126,10 @@ calculate_force_switch_F(const NBParamGpu nbparam, float c6, float c12, float in
 
 /*! Apply force switch, force-only version. */
 static __forceinline__ __device__ void calculate_force_switch_F_E(const NBParamGpu nbparam,
-                                                                  float            c6,
-                                                                  float            c12,
-                                                                  float            inv_r,
-                                                                  float            r2,
+                                                                  const float      c6,
+                                                                  const float      c12,
+                                                                  const float      inv_r,
+                                                                  const float      r2,
                                                                   float*           F_invr,
                                                                   float*           E_lj)
 {
@@ -210,6 +214,61 @@ calculate_potential_switch_F_E(const NBParamGpu nbparam, float inv_r, float r2, 
     *E_lj *= sw;
 }
 
+/*! Apply potential switch, force-only version. Calculates f_r. */
+static __forceinline__ __device__ void calculate_potential_switch_Fr(const NBParamGpu& nbparam,
+                                                                     const float       r,
+                                                                     float*            F_r,
+                                                                     const float*      E_lj)
+{
+    float r_switch;
+    float sw, dsw;
+
+    /* potential switch constants */
+    float switch_V3 = nbparam.vdw_switch.c3;
+    float switch_V4 = nbparam.vdw_switch.c4;
+    float switch_V5 = nbparam.vdw_switch.c5;
+    float switch_F2 = 3 * nbparam.vdw_switch.c3;
+    float switch_F3 = 4 * nbparam.vdw_switch.c4;
+    float switch_F4 = 5 * nbparam.vdw_switch.c5;
+
+    r_switch = r - nbparam.rvdw_switch;
+
+    /* Unlike in the F+E kernel, conditional is faster here */
+    if (r_switch > 0.0F)
+    {
+        sw = 1.0F + (switch_V3 + (switch_V4 + switch_V5 * r_switch) * r_switch) * r_switch * r_switch * r_switch;
+        dsw = (switch_F2 + (switch_F3 + switch_F4 * r_switch) * r_switch) * r_switch * r_switch;
+
+        *F_r = (*F_r) * sw - r * (*E_lj) * dsw;
+    }
+}
+
+/*! Apply potential switch, force + energy version. Calculates f_r. */
+static __forceinline__ __device__ void
+calculate_potential_switch_Fr_E(const NBParamGpu nbparam, const float r, float* F_r, float* E_lj)
+{
+    float r_switch;
+    float sw, dsw;
+
+    /* potential switch constants */
+    float switch_V3 = nbparam.vdw_switch.c3;
+    float switch_V4 = nbparam.vdw_switch.c4;
+    float switch_V5 = nbparam.vdw_switch.c5;
+    float switch_F2 = 3 * nbparam.vdw_switch.c3;
+    float switch_F3 = 4 * nbparam.vdw_switch.c4;
+    float switch_F4 = 5 * nbparam.vdw_switch.c5;
+
+    // r        = r2 * inv_r;
+    r_switch = r - nbparam.rvdw_switch;
+    r_switch = r_switch >= 0.0F ? r_switch : 0.0F;
+
+    /* Unlike in the F-only kernel, masking is faster here */
+    sw = 1.0F + (switch_V3 + (switch_V4 + switch_V5 * r_switch) * r_switch) * r_switch * r_switch * r_switch;
+    dsw = (switch_F2 + (switch_F3 + switch_F4 * r_switch) * r_switch) * r_switch * r_switch;
+
+    *F_r = (*F_r) * sw - r * (*E_lj) * dsw;
+    *E_lj *= sw;
+}
 
 /*! \brief Fetch C6 grid contribution coefficients and return the product of these.
  *

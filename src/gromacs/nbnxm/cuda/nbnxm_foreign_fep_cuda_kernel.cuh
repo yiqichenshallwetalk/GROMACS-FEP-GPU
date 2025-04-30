@@ -113,9 +113,9 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
       const float4* ljComb4 = atdat.ljComb4;
       #    endif
 
-      float rInvC, r2C, rPInvC, rPInvV;
+      float rInvC, r2C, rPInvC, rPInvV, rInv6;
 #    if defined LJ_POT_SWITCH
-      float rInvV, r2V;
+      float rInvV, r2V, rV;
 #    endif
       float sigma6[2], c6AB[2], c12AB[2];
       float qq[2];
@@ -339,8 +339,16 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 
                         if (pairIncluded && withinCutoffMask)
                         {
-                              rpm2 = r2 * r2;
-                              rp   = rpm2 * r2;
+                            if (useSoftCore)
+                            {
+                                rpm2 = r2 * r2;
+                                rp   = rpm2 * r2;
+                            }
+                            else
+                            {
+                                rpm2 = inv_r * inv_r;
+                                rp   = 1.0F;
+                            }
 
                         for (int k = 0; k < 2; k++)
                         {
@@ -416,6 +424,7 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 #    if defined LJ_POT_SWITCH
                                                       r2V    = rcbrt(rPInvV);
                                                       rInvV = rsqrt(r2V);
+                                                      rV     = r2V * rInvV;
 #    endif
                                                 }
                                                 else
@@ -425,6 +434,7 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 #    if defined LJ_POT_SWITCH
                                                       r2V    = r2C;
                                                       rInvV  = rInvC;
+                                                      rV     = r2V * rInvV;
 #    endif
                                                 }
                                           }
@@ -437,26 +447,32 @@ __global__ void NB_FOREIGN_FEP_KERNEL_FUNC_NAME(nbnxn_foreign_fep_kernel, _V_cud
 #    if defined LJ_POT_SWITCH
                                                 r2V    = r2;
                                                 rInvV  = inv_r;
+                                                rV     = r2V * rInvV;
 #    endif
                                           }
 
                                           if (c6AB[k] != 0.0F || c12AB[k] != 0.0F)
                                           {
-                                                if (!useSoftCore) {
-                                                      rPInvV = inv_r2 * inv_r2 * inv_r2;
-                                                }
-                                                float Vvdw6  = c6AB[k] * rPInvV;
-                                                float Vvdw12 = c12AB[k] * rPInvV * rPInvV;
-                                                scalarForcePerDistanceVdw[k]    = Vvdw12 - Vvdw6;
+                                              if (!useSoftCore)
+                                              {
+                                                  rInv6 = inv_r2 * inv_r2 * inv_r2;
+                                              }
+                                              else
+                                              {
+                                                  rInv6 = rPInvV;
+                                              }
+                                              float Vvdw6  = c6AB[k] * rInv6;
+                                              float Vvdw12 = c12AB[k] * rInv6 * rInv6;
+                                              scalarForcePerDistanceVdw[k] = Vvdw12 - Vvdw6;
 
-                                                Vvdw[k]      =
-                                                            ((Vvdw12 + c12AB[k] * nbparam.repulsion_shift.cpot) * c_oneTwelveth
-                                                            - (Vvdw6 + c6AB[k] * nbparam.dispersion_shift.cpot)
-                                                                  * c_oneSixth);
+                                              Vvdw[k] =
+                                                      ((Vvdw12 + c12AB[k] * nbparam.repulsion_shift.cpot) * c_oneTwelveth
+                                                       - (Vvdw6 + c6AB[k] * nbparam.dispersion_shift.cpot)
+                                                                 * c_oneSixth);
 
 #    ifdef LJ_POT_SWITCH
-                                                calculate_potential_switch_F_E(nbparam, rInvV, r2V,
-                                                                              &(scalarForcePerDistanceVdw[k]), &(Vvdw[k]));
+                                              calculate_potential_switch_Fr_E(
+                                                      nbparam, rV, &(scalarForcePerDistanceVdw[k]), &(Vvdw[k]));
 #    endif /* LJ_POT_SWITCH */
 
 #    ifdef VDW_CUTOFF_CHECK
